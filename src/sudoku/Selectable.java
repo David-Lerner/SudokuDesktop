@@ -7,5 +7,5 @@ package sudoku;
 public interface Selectable {
     
     public void setSelected(boolean selected);
-    public boolean isSelected();
+    public void resolve(Selectable s);
 }
