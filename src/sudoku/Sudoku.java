@@ -82,5 +82,7 @@ public class Sudoku {
         return length;
     }
     
-    
+    public Cell getCell(int i, int j) {
+        return cells[i][j];
+    }
 }
