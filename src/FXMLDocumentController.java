@@ -47,15 +47,13 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     private GridPane buttonGrid;
     
-    public static final int SIDE_LENGTH = 432;
-    
     public static final int BASE = 3;
     private static final int CELL_SIZE = 40;
     public static final int LENGTH = BASE*BASE;
     private static final int BORDER_SIZE = 1;
 
     private Sudoku sudoku;
-    private Tile[][] tileGrid;
+    private CellTile[][] cellGrid;
     private Selectable currentSelected;
     private GridPane[] subGrids;
     private boolean clicked = false;
@@ -73,20 +71,11 @@ public class FXMLDocumentController implements Initializable {
         });
         sudoku = new Sudoku(BASE);
         //sudokuGrid.setStyle("-fx-background-color: black;");
-        //sudokuGrid.setStyle("-fx-background-radius: 300px, 3px, 2px, 200px;");
-        //sudokuGrid.setStyle("-fx-background-insets: 2.0 5.0 4.0 5.0");
         //sudokuGrid.setAlignment(Pos.CENTER);
-        sudokuGrid.setHgap(2);
-        sudokuGrid.setVgap(2);
+        //sudokuGrid.setHgap(2);
+        //sudokuGrid.setVgap(2);
         //sudokuGrid.setPadding(new Insets(1, 1, 1, 1));
-        //int cellWidth = SIDE_LENGTH/length;
-        /*for (int i = 0; i < length; i++) {
-             ColumnConstraints col = new ColumnConstraints(cellWidth);
-             sudokuGrid.getColumnConstraints().add(col);
-             RowConstraints row = new RowConstraints(cellWidth);
-             sudokuGrid.getRowConstraints().add(row);
-        }*/
-        tileGrid = new Tile[LENGTH][LENGTH];
+        cellGrid = new CellTile[LENGTH][LENGTH];
         subGrids = new GridPane[LENGTH];
         for (int i = 0; i < LENGTH; i++) {
             subGrids[i] = new GridPane();
@@ -96,66 +85,92 @@ public class FXMLDocumentController implements Initializable {
         for (int i = 0; i < LENGTH; i++) {
             for (int j = 0; j < LENGTH; j++) {
                 System.out.println("Creating Tile "+(i*LENGTH+j));
-                Cell cell = sudoku.getCell(i,j);
-                final Tile tile = new Tile(i, j, cell.getValue(), cell.isGiven());
-                tile.setId(String.valueOf(i*LENGTH+j));
-                tile.setOnMouseClicked((MouseEvent event) -> {
-                    System.out.println("mouse click detected on tile "+tile.getId());
+                final CellTile ct = new CellTile(sudoku.getCell(i,j));
+                ct.setId(String.valueOf(i*LENGTH+j));
+                ct.setOnMouseClicked((MouseEvent event) -> {
+                    System.out.println("mouse click detected on tile "+ct.getId());
                     clicked = true;
-                    tile.resolve(currentSelected);
-                    /*tile.setSelected(true);
-                    if (currentSelected != null)
-                        currentSelected.setSelected(false);
-                    currentSelected = tile;*/
+                    ct.resolve(currentSelected);
                 });
-                //sudokuGrid.getChildren().add(tile);
-                //sudokuGrid.add(tile, j, i);
-                subGrids[j/BASE+(i/BASE)*BASE].add(tile, j%BASE, i%BASE);
-                tileGrid[i][j] = tile;
+                subGrids[j/BASE+(i/BASE)*BASE].add(ct, j%BASE, i%BASE);
+                cellGrid[i][j] = ct;
             }
         }
         
-        for (int i = 0; i <= LENGTH; i++) {
-            final NumberButton btn = new NumberButton(i);
-            btn.setOnMouseClicked((MouseEvent event) -> {
-                System.out.println("mouse click detected on number button "+btn.getValue());
+        for (int i = 0; i < LENGTH; i++) {
+            final ValueTile vt = new ValueTile(i+1);
+            vt.setOnMouseClicked((MouseEvent event) -> {
+                System.out.println("mouse click detected on number button "+vt.getValue());
                 clicked = true;
-                btn.resolve(currentSelected);
-                /*btn.setSelected(true);
-                if (currentSelected != null)
-                    currentSelected.setSelected(false);
-                currentSelected = btn;*/
+                vt.resolve(currentSelected);
             });
-            buttonGrid.add(btn, i, 0);
+            buttonGrid.add(vt, i, 0);
+            final PossibilityTile ct = new PossibilityTile(i+1);
+            ct.setOnMouseClicked((MouseEvent event) -> {
+                System.out.println("mouse click detected on possibility button "+ct.getPossibility());
+                clicked = true;
+                ct.resolve(currentSelected);
+            });
+            buttonGrid.add(ct, i, 1);
         }
+        final ValueTile vt = new ValueTile(0);
+        vt.setOnMouseClicked((MouseEvent event) -> {
+            System.out.println("mouse click detected on the number erase button ");
+            clicked = true;
+            vt.resolve(currentSelected);
+        });
+        buttonGrid.add(vt, 9, 0);
+        final HighlightTile ht = new HighlightTile();
+        ht.setOnMouseClicked((MouseEvent event) -> {
+            System.out.println("mouse click detected on the highlight button ");
+            clicked = true;
+            ht.resolve(currentSelected);
+        });
+        buttonGrid.add(ht, 9, 1);
     }
     
-    private class Tile extends StackPane implements Selectable{
+    private class CellTile extends StackPane implements Selectable{
+        private Cell cell;
         private boolean selected = false;
-        private boolean given = false;
-        private int i;
-        private int j;
 
-        private Rectangle cell = new Rectangle(CELL_SIZE - 2*BORDER_SIZE, CELL_SIZE - 2*BORDER_SIZE);
+        private Rectangle inner = new Rectangle(CELL_SIZE - 2*BORDER_SIZE, CELL_SIZE - 2*BORDER_SIZE);
         private Rectangle border = new Rectangle(CELL_SIZE, CELL_SIZE);
         private Text text = new Text();
+        private GridPane possibleGrid = new GridPane();
+        private Label possibles[] = new Label[LENGTH];
 
-        public Tile(int i, int j, int value, boolean given) {
-            this.i = i;
-            this.j = j;
-            this.given = given;
+        public CellTile(Cell cell) {
+            this.cell = cell;
 
             border.setStroke(Color.BLUE);
             border.setFill(Color.BLUE);
-            cell.setStroke(Color.LIGHTGRAY);
-            cell.setFill(Color.WHITE);
+            inner.setStroke(Color.LIGHTGRAY);
+            inner.setFill(cell.isHighlighted()? Color.CYAN : Color.WHITE);
 
-            text.setFont(Font.font(18));
-            text.setText(String.valueOf(value));
-            text.setVisible(value!=0);
+            text.setFont(Font.font((CELL_SIZE - 2*BORDER_SIZE)/2));
+            text.setText(String.valueOf(cell.getValue()));
+            text.setVisible(cell.getValue()!=0);
             border.setVisible(selected);
+            
+            possibleGrid.setPrefSize(CELL_SIZE, CELL_SIZE);
+            for (int i = 0; i < LENGTH; i++) {
+                Label label = new Label(String.valueOf(i+1));
+                label.setFont(Font.font((CELL_SIZE-2*BORDER_SIZE)/(BASE)));
+                label.setPadding(new Insets(-BASE, -BASE, -BASE, -BASE));
+                StackPane pane = new StackPane();
+                pane.setMaxWidth(CELL_SIZE/BASE);
+                pane.setMaxHeight(CELL_SIZE/BASE);
+                Rectangle r = new Rectangle(CELL_SIZE/BASE, CELL_SIZE/BASE);
+                r.setVisible(false);
+                pane.getChildren().add(r);
+                pane.setClip(new Rectangle(CELL_SIZE/BASE, CELL_SIZE/BASE));
+                pane.getChildren().add(label);
+                label.setVisible(cell.containsPossibility(i+1));
+                possibles[i] = label;
+                possibleGrid.add(pane, i%BASE, i/BASE);
+            }
 
-            getChildren().addAll(border, cell, text);
+            getChildren().addAll(border, inner, text, possibleGrid);
         }
         
         @Override
@@ -164,11 +179,11 @@ public class FXMLDocumentController implements Initializable {
 
             border.setVisible(selected);
             if(selected){ //Decrease the white cell size, to increase the selected border size
-                cell.setWidth(CELL_SIZE - 6*BORDER_SIZE);
-                cell.setHeight(CELL_SIZE - 6*BORDER_SIZE);
+                inner.setWidth(CELL_SIZE - 6*BORDER_SIZE);
+                inner.setHeight(CELL_SIZE - 6*BORDER_SIZE);
             } else { //Increase the white cell size, to revert the border size
-                cell.setWidth(CELL_SIZE - 2*BORDER_SIZE);
-                cell.setHeight(CELL_SIZE - 2*BORDER_SIZE);
+                inner.setWidth(CELL_SIZE - 2*BORDER_SIZE);
+                inner.setHeight(CELL_SIZE - 2*BORDER_SIZE);
             }
         }
         
@@ -181,65 +196,101 @@ public class FXMLDocumentController implements Initializable {
             else if (s == this) {
                 currentSelected = null;
                 setSelected(false);
+                setHighlighted(false);
             }
-            else if (s instanceof Tile) {
+            else if (s instanceof CellTile) {
                 currentSelected = this;
                 s.setSelected(false);
                 setSelected(true);
             }
-            else if (s instanceof NumberButton) {
-                if (!given) {
-                    int value = ((NumberButton) s).getValue();
-                    setValue(value);
-                    sudoku.getCell(i, j).setValue(value);
+            else if (s instanceof ValueTile) {
+                if (!cell.isGiven()) {
+                    setValue(((ValueTile) s).getValue());
                 }
                 currentSelected = null;
                 s.setSelected(false);
             }
-        }
-
-        public int getI() {
-            return i;
-        }
-
-        public int getJ() {
-            return j;
+            else if (s instanceof PossibilityTile) {
+                if (!cell.isGiven()) {
+                    togglePossible(((PossibilityTile) s).getPossibility());
+                }
+                //currentSelected = null;
+                //s.setSelected(false);
+            }
+            else if (s instanceof HighlightTile) {
+                setHighlighted(!cell.isHighlighted());
+                //HighlightTile t = ((HighlightTile) s);
+                //currentSelected = null;
+                //t.setSelected(false);
+            }
         }
         
         public void setValue(int value){
             text.setText(String.valueOf(value));
             text.setVisible(value!=0);
+            cell.setValue(value);
+            if (cell.getPossibilityCount() > 0) {
+                for (int i = 0; i < LENGTH; i++) {
+                    if (cell.containsPossibility(i+1)) {
+                        cell.setPossibile(i+1, false);
+                        possibles[i].setVisible(false);
+                    }
+                }
+            }
+        }
+        
+        public int getValue() {
+            return cell.getValue();
+        }
+        
+        
+        public boolean containsPossibility(int i) {
+            return cell.containsPossibility(i);
         }
         
         public boolean isGiven() {
-            return given;
+            return cell.isGiven();
+        }
+        
+        public void togglePossible(int value) {
+            if (cell.getValue() != 0)
+                setValue(0);
+            cell.togglePossibile(value);
+            possibles[value-1].setVisible(cell.containsPossibility(value));
+        }
+        
+        public void setHighlighted(boolean highlighted) {
+            inner.setFill(highlighted? Color.CYAN : Color.WHITE);
+            cell.setHighlighted(highlighted);
+        }
+        
+        public boolean isHighlighted() {
+            return cell.isHighlighted();
         }
     }
     
-    private class NumberButton extends StackPane implements Selectable {
+    private class ValueTile extends StackPane implements Selectable {
         
         private int value;
         private boolean selected = false;
-        private Rectangle cell = new Rectangle(CELL_SIZE - 2*BORDER_SIZE, CELL_SIZE - 2*BORDER_SIZE);
+        private Rectangle inner = new Rectangle(CELL_SIZE - 2*BORDER_SIZE, CELL_SIZE - 2*BORDER_SIZE);
         private Rectangle border = new Rectangle(CELL_SIZE, CELL_SIZE);
         private Text text = new Text();
         
-        public NumberButton(int value) {
+        public ValueTile(int value) {
             this.value = value;
-            //setStyle("-fx-background-radius: 3px, 3px, 2px, 1px;");
-            //setStyle("-fx-background-color: transparent;");
             
-            text.setFont(Font.font(18));
+            text.setFont(Font.font((CELL_SIZE - 2*BORDER_SIZE)/2));
             text.setText(String.valueOf(value));
             text.setVisible(value!=0);
             border.setVisible(selected);
             
             border.setStroke(Color.BLUE);
             border.setFill(Color.BLUE);
-            cell.setStroke(Color.LIGHTGRAY);
-            cell.setFill(Color.WHITE);
+            inner.setStroke(Color.LIGHTGRAY);
+            inner.setFill(Color.WHITE);
 
-            getChildren().addAll(border, cell, text);
+            getChildren().addAll(border, inner, text);
         }
 
         @Override
@@ -248,11 +299,11 @@ public class FXMLDocumentController implements Initializable {
             this.selected = selected;
             border.setVisible(selected);
             if(selected){ //Decrease the white cell size, to increase the selected border size
-                cell.setWidth(CELL_SIZE - 6*BORDER_SIZE);
-                cell.setHeight(CELL_SIZE - 6*BORDER_SIZE);
+                inner.setWidth(CELL_SIZE - 6*BORDER_SIZE);
+                inner.setHeight(CELL_SIZE - 6*BORDER_SIZE);
             } else { //Increase the white cell size, to revert the border size
-                cell.setWidth(CELL_SIZE - 2*BORDER_SIZE);
-                cell.setHeight(CELL_SIZE - 2*BORDER_SIZE);
+                inner.setWidth(CELL_SIZE - 2*BORDER_SIZE);
+                inner.setHeight(CELL_SIZE - 2*BORDER_SIZE);
             }
         }
 
@@ -266,17 +317,22 @@ public class FXMLDocumentController implements Initializable {
                 currentSelected = null;
                 setSelected(false);
             }
-            else if (s instanceof NumberButton) {
+            else if (s instanceof ValueTile || s instanceof PossibilityTile) {
                 currentSelected = this;
                 s.setSelected(false);
                 setSelected(true);
             }
-            else if (s instanceof Tile) {
-                Tile t = ((Tile) s);
+            else if (s instanceof CellTile) {
+                CellTile t = ((CellTile) s);
                 if (!t.isGiven()) {
                     t.setValue(value);
-                    sudoku.getCell(t.getI(), t.getJ()).setValue(value);
                 }
+                currentSelected = null;
+                t.setSelected(false);
+            }
+            else if (s instanceof HighlightTile) {
+                HighlightTile t = ((HighlightTile) s);
+                setHighlighted();
                 currentSelected = null;
                 t.setSelected(false);
             }
@@ -286,7 +342,179 @@ public class FXMLDocumentController implements Initializable {
             return value;
         }
         
-        
+        public void setHighlighted() {
+            for (int i = 0; i < LENGTH; i++) {
+                for (int j = 0; j < LENGTH; j++) {
+                    if (cellGrid[i][j].getValue() == value) {
+                        cellGrid[i][j].setHighlighted(true);
+                    }
+                }
+            }
+        }
     
+    }
+    
+    private class PossibilityTile extends StackPane implements Selectable {
+        
+        private int possibility;
+        private boolean selected = false;
+        private Rectangle inner = new Rectangle(CELL_SIZE - 2*BORDER_SIZE, CELL_SIZE - 2*BORDER_SIZE);
+        private Rectangle border = new Rectangle(CELL_SIZE, CELL_SIZE);
+        private GridPane possibleGrid = new GridPane();
+        private Label possibles[] = new Label[LENGTH];
+        
+        public PossibilityTile(int possibility) {
+            this.possibility = possibility;
+            
+            possibleGrid.setPrefSize(CELL_SIZE, CELL_SIZE);
+            //possibleGrid.setAlignment(Pos.CENTER);
+            this.setClip(new Rectangle(CELL_SIZE, CELL_SIZE));
+            for (int i = 0; i < LENGTH; i++) {
+                Label label = new Label(String.valueOf(i+1));
+                label.setFont(Font.font((CELL_SIZE-2*BORDER_SIZE)/(BASE)));
+                label.setPadding(new Insets(-BASE, -BASE, -BASE, -BASE));
+                StackPane pane = new StackPane();
+                pane.setMaxWidth(CELL_SIZE/BASE);
+                pane.setMaxHeight(CELL_SIZE/BASE);
+                Rectangle r = new Rectangle(1*CELL_SIZE/BASE, 1*CELL_SIZE/BASE);
+                r.setVisible(false);
+                pane.getChildren().add(r);
+                pane.setClip(new Rectangle(1*CELL_SIZE/BASE, 1*CELL_SIZE/BASE));
+                pane.getChildren().add(label);
+                label.setVisible(i+1==possibility);
+                possibles[i] = label;
+                possibleGrid.add(pane, i%BASE, i/BASE);
+            }
+            border.setVisible(selected);        
+            border.setStroke(Color.BLUE);
+            border.setFill(Color.BLUE);
+            inner.setStroke(Color.LIGHTGRAY);
+            inner.setFill(Color.WHITE);
+
+            getChildren().addAll(border, inner, possibleGrid);
+        }
+
+        @Override
+        public void setSelected(boolean selected) {
+            
+            this.selected = selected;
+            border.setVisible(selected);
+            if(selected){ //Decrease the white cell size, to increase the selected border size
+                inner.setWidth(CELL_SIZE - 6*BORDER_SIZE);
+                inner.setHeight(CELL_SIZE - 6*BORDER_SIZE);
+            } else { //Increase the white cell size, to revert the border size
+                inner.setWidth(CELL_SIZE - 2*BORDER_SIZE);
+                inner.setHeight(CELL_SIZE - 2*BORDER_SIZE);
+            }
+        }
+
+        @Override
+        public void resolve(Selectable s) {
+            if (s == null) {
+                currentSelected = this;
+                setSelected(true);
+            }
+            else if (s == this) {
+                currentSelected = null;
+                setSelected(false);
+            }
+            else if (s instanceof ValueTile || s instanceof PossibilityTile) {
+                currentSelected = this;
+                s.setSelected(false);
+                setSelected(true);
+            }
+            else if (s instanceof CellTile) {
+                CellTile t = ((CellTile) s);
+                if (!t.isGiven()) {
+                    t.togglePossible(possibility);
+                }
+                //currentSelected = null;
+                //t.setSelected(false);
+            }
+            else if (s instanceof HighlightTile) {
+                HighlightTile t = ((HighlightTile) s);
+                setHighlighted();
+                currentSelected = null;
+                t.setSelected(false);
+            }
+        }
+        
+        public int getPossibility() {
+            return possibility;
+        }
+        
+        public void setHighlighted() {
+            for (int i = 0; i < LENGTH; i++) {
+                for (int j = 0; j < LENGTH; j++) {
+                    if (cellGrid[i][j].containsPossibility(possibility)) {
+                        cellGrid[i][j].setHighlighted(true);
+                    }
+                }
+            }
+        }
+        
+    }
+    
+    private class HighlightTile extends StackPane implements Selectable {
+        
+        private boolean selected = false;
+        private Rectangle inner = new Rectangle(CELL_SIZE - 2*BORDER_SIZE, CELL_SIZE - 2*BORDER_SIZE);
+        private Rectangle border = new Rectangle(CELL_SIZE, CELL_SIZE);
+        
+        public HighlightTile() {            
+            
+            border.setVisible(selected);
+            border.setStroke(Color.BLUE);
+            border.setFill(Color.BLUE);
+            inner.setStroke(Color.LIGHTGRAY);
+            inner.setFill(Color.CYAN);
+
+            getChildren().addAll(border, inner);
+        }
+
+        @Override
+        public void setSelected(boolean selected) {
+            
+            this.selected = selected;
+            border.setVisible(selected);
+            if(selected){ //Decrease the white cell size, to increase the selected border size
+                inner.setWidth(CELL_SIZE - 6*BORDER_SIZE);
+                inner.setHeight(CELL_SIZE - 6*BORDER_SIZE);
+            } else { //Increase the white cell size, to revert the border size
+                inner.setWidth(CELL_SIZE - 2*BORDER_SIZE);
+                inner.setHeight(CELL_SIZE - 2*BORDER_SIZE);
+            }
+        }
+
+        @Override
+        public void resolve(Selectable s) {
+            if (s == null) {
+                currentSelected = this;
+                setSelected(true);
+            }
+            else if (s == this) {
+                currentSelected = null;
+                setSelected(false);
+            }
+            else if (s instanceof ValueTile) {
+                ValueTile t = ((ValueTile) s);
+                t.setHighlighted();
+                currentSelected = null;
+                t.setSelected(false);
+            }
+            else if (s instanceof PossibilityTile) {
+                PossibilityTile t = ((PossibilityTile) s);
+                t.setHighlighted();
+                currentSelected = null;
+                t.setSelected(false);
+            }
+            else if (s instanceof CellTile) {
+                CellTile t = ((CellTile) s);
+                t.setHighlighted(!t.isHighlighted());
+                currentSelected = null;
+                t.setSelected(false);
+            }
+        }
+        
     }
 }

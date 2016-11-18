@@ -1,5 +1,7 @@
 package sudoku;
 
+import java.util.Arrays;
+
 /**
  *
  * @author David
@@ -78,15 +80,26 @@ public class Cell {
         return possibles[number-1];
     }
     
+    public boolean[] getPossibilities() {
+        return Arrays.copyOf(possibles, possibles.length);
+    }
+    
     public boolean setPossibile(int number, boolean possible) {
         if (possible == possibles[number-1])
             return false;
         possibles[number-1] = possible;
-        
+        if (possibles[number-1])
+            possibilityCount++;
+        else
+            possibilityCount--;
         return true;
     }
     
     public void togglePossibile(int number) {
+        if (possibles[number-1])
+            possibilityCount--;
+        else
+            possibilityCount++;
         possibles[number-1] = !possibles[number-1];
     }
 }
