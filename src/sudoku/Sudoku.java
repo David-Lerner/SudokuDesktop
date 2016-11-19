@@ -69,7 +69,7 @@ public class Sudoku {
                 SubSudoku row = rows[i];
                 SubSudoku column = columns[j];
                 SubSudoku subgrid = subgrids[(j/base+(i/base)*base)];
-                Cell cell = new Cell(j+i*length, length, given[i][j], row, column, subgrid, true);
+                Cell cell = new Cell(j+i*length, length, given[i][j], row, column, subgrid, given[i][j]!=0);
                 cells[i][j] = cell;
                 row.addcell(cell);
                 column.addcell(cell);

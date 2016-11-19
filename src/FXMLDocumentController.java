@@ -4,7 +4,12 @@
  * and open the template in the editor.
  */
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.ResourceBundle;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -27,10 +32,13 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
+import javax.swing.JFileChooser;
 import sudoku.Sudoku;
 import sudoku.Cell;
 import sudoku.Selectable;
+import sudoku.Solver;
 
 /**
  *
@@ -51,6 +59,7 @@ public class FXMLDocumentController implements Initializable {
     private static final int CELL_SIZE = 40;
     public static final int LENGTH = BASE*BASE;
     private static final int BORDER_SIZE = 1;
+    private static final String DEFAULT_GAME = "p096_sudoku.txt";
 
     private Sudoku sudoku;
     private CellTile[][] cellGrid;
@@ -58,18 +67,118 @@ public class FXMLDocumentController implements Initializable {
     private GridPane[] subGrids;
     private boolean clicked = false;
     
+    private int sudokuNumber = 0;
+    private ArrayList<int[][]> sudokus = new ArrayList<>();
+    
     @Override
     public void initialize(URL url, ResourceBundle rb) {
-        sudokuScene.setOnMouseClicked((MouseEvent event) -> {
-            if (!clicked) {
-                System.out.println("mouse click detected on scene");
-                if (currentSelected != null)
-                    currentSelected.setSelected(false);
-                currentSelected = null;
+        int[][] model = new int[9][9] ;
+
+      // Clear all cells
+      for( int row = 0; row < 9; row++ )
+         for( int col = 0; col < 9; col++ )
+            model[row][col] = 0 ;
+
+      // Create the initial situation
+      
+      model[0][0] = 9 ;
+      model[0][4] = 2 ;
+      model[0][6] = 7 ;
+      model[0][7] = 5 ;
+
+      model[1][0] = 6 ;
+      model[1][4] = 5 ;
+      model[1][7] = 4 ;
+
+      model[2][1] = 2 ;
+      model[2][3] = 4 ;
+      model[2][7] = 1 ;
+
+      model[3][0] = 2 ;
+      model[3][2] = 8 ;
+
+      model[4][1] = 7 ;
+      model[4][3] = 5 ;
+      model[4][5] = 9 ;
+      model[4][7] = 6 ;
+
+      model[5][6] = 4 ;
+      model[5][8] = 1 ;
+
+      model[6][1] = 1 ;
+      model[6][5] = 5 ;
+      model[6][7] = 8 ;
+
+      model[7][1] = 9 ;
+      model[7][4] = 7 ;
+      model[7][8] = 4 ;
+
+      model[8][1] = 8 ;
+      model[8][2] = 2 ;
+      model[8][4] = 4 ;
+      model[8][8] = 6 ;
+      sudoku = new Sudoku(model);
+        /*int sample[][] = {{ 3, 0, 6, 5, 0, 8, 4, 0, 0 }, //
+                        { 5, 2, 0, 0, 0, 0, 0, 0, 0 }, //
+                        { 0, 8, 7, 0, 0, 0, 0, 3, 1 }, //
+                        { 0, 0, 3, 0, 1, 0, 0, 8, 0 }, //
+                        { 9, 0, 0, 8, 6, 3, 0, 0, 5 }, //
+                        { 0, 5, 0, 0, 9, 0, 6, 0, 0 }, //
+                        { 1, 3, 0, 0, 0, 0, 2, 5, 0 }, //
+                        { 0, 0, 0, 0, 0, 0, 0, 7, 4 }, //
+                        { 0, 0, 5, 2, 0, 6, 3, 0, 0 } };
+        sudoku = new Sudoku(sample);*/
+        /*sudoku = new Sudoku(BASE);
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(DEFAULT_GAME));
+            String line ="";
+            int lineCount = 0;
+            char[][] initialBoard = new char[9][9];
+            while((line = br.readLine()) != null && lineCount < 9){
+                System.out.println(line);
+                initialBoard[lineCount++] = line.toCharArray() ;
             }
-            clicked = false;
+            br.close();
+            int[][] grid = new int[9][9];
+            for (int i = 0; i < 9; i++) {
+                for (int j = 0; j < 9; j++) {
+                    grid[i][j] = Character.getNumericValue(initialBoard[i][j]);
+                }
+            }
+            sudoku = new Sudoku(grid);
+        } catch(FileNotFoundException ex) {
+            System.out.println("Unable to open file '" + DEFAULT_GAME + "'");                
+        } catch(IOException ex) {
+            System.out.println("Error reading file '" + DEFAULT_GAME + "'");                   
+        }*/
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(DEFAULT_GAME));
+            String line;  
+            while((line = br.readLine()) != null){
+                if (line.contains("G")) {
+                    char[][] initialBoard = new char[9][9];
+                    for (int i = 0; i < 9; i++) {
+                        line = br.readLine();
+                        initialBoard[i] = line.toCharArray();
+                    }
+                    int[][] grid = new int[9][9];
+                    for (int i = 0; i < 9; i++) {
+                        for (int j = 0; j < 9; j++) {
+                            grid[i][j] = Character.getNumericValue(initialBoard[i][j]);
+                        }
+                    }
+                    sudokus.add(grid);
+                }
+            }
+            br.close();
+        } catch(FileNotFoundException ex) {
+            System.out.println("Unable to open file '" + DEFAULT_GAME + "'");                
+        } catch(IOException ex) {
+            System.out.println("Error reading file '" + DEFAULT_GAME + "'");                   
+        }
+        sudokuScene.setOnMouseClicked((MouseEvent event) -> {
+            undoCurrentSelected();
         });
-        sudoku = new Sudoku(BASE);
         //sudokuGrid.setStyle("-fx-background-color: black;");
         //sudokuGrid.setAlignment(Pos.CENTER);
         //sudokuGrid.setHgap(2);
@@ -147,7 +256,7 @@ public class FXMLDocumentController implements Initializable {
             inner.setStroke(Color.LIGHTGRAY);
             inner.setFill(cell.isHighlighted()? Color.CYAN : Color.WHITE);
 
-            text.setFont(Font.font((CELL_SIZE - 2*BORDER_SIZE)/2));
+            text.setFont(Font.font(null, cell.isGiven()? FontWeight.EXTRA_BOLD : FontWeight.NORMAL, CELL_SIZE/2));
             text.setText(String.valueOf(cell.getValue()));
             text.setVisible(cell.getValue()!=0);
             border.setVisible(selected);
@@ -189,6 +298,7 @@ public class FXMLDocumentController implements Initializable {
         
         @Override
         public void resolve(Selectable s) {
+            System.out.println("resolving cell tile");
             if (s == null) {
                 currentSelected = this;
                 setSelected(true);
@@ -267,6 +377,17 @@ public class FXMLDocumentController implements Initializable {
         public boolean isHighlighted() {
             return cell.isHighlighted();
         }
+
+        public void setCell(Cell cell) {
+            this.cell = cell;
+            setHighlighted(cell.isHighlighted());
+            setValue(cell.getValue());
+            text.setFont(Font.font(null, cell.isGiven()? FontWeight.EXTRA_BOLD : FontWeight.NORMAL, CELL_SIZE/2));
+            for (int i = 0; i < LENGTH; i++)
+                possibles[i].setVisible(cell.containsPossibility(i+1));
+        }
+        
+        
     }
     
     private class ValueTile extends StackPane implements Selectable {
@@ -516,5 +637,77 @@ public class FXMLDocumentController implements Initializable {
             }
         }
         
+    }
+    
+    @FXML
+    public void newGame() {
+        undoCurrentSelected();
+        reset(new Sudoku(sudokus.get(sudokuNumber++)));
+    }
+    
+    @FXML
+    public void loadGame() {
+        String filename = null;
+        JFileChooser chooser = new JFileChooser();
+         if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION)
+            filename = chooser.getSelectedFile().getPath();
+         try {
+         BufferedReader br = new BufferedReader(new FileReader(DEFAULT_GAME));
+            String line = br.readLine();  
+                if (line.contains("G")) {
+                    char[][] initialBoard = new char[9][9];
+                    for (int i = 0; i < 9; i++) {
+                        line = br.readLine();
+                        initialBoard[i] = line.toCharArray();
+                    }
+                    int[][] grid = new int[9][9];
+                    for (int i = 0; i < 9; i++) {
+                        for (int j = 0; j < 9; j++) {
+                            grid[i][j] = Character.getNumericValue(initialBoard[i][j]);
+                        }
+                    }
+                    reset(new Sudoku(grid));
+                }
+            br.close();
+        } catch(FileNotFoundException ex) {
+            System.out.println("Unable to open file '" + DEFAULT_GAME + "'");                
+        } catch(IOException ex) {
+            System.out.println("Error reading file '" + DEFAULT_GAME + "'");                   
+        }
+    }
+    
+    @FXML
+    public void saveGame() {
+        undoCurrentSelected();
+    }
+    
+    @FXML
+    public void solveGame() {
+        undoCurrentSelected();
+        Sudoku solution = Solver.solve(sudoku);
+        if (solution != null) {
+            reset(solution);
+        } else {
+            System.out.println("No solution");
+        }
+            
+    }
+    
+    private void undoCurrentSelected() {
+        if (!clicked) {
+            if (currentSelected != null)
+                currentSelected.setSelected(false);
+            currentSelected = null;
+            }
+        clicked = false;
+    }
+    
+    private void reset(Sudoku newSudoku) {
+        for (int i = 0; i < LENGTH; i++) {
+            for (int j = 0; j < LENGTH; j++) {
+                cellGrid[i][j].setCell(newSudoku.getCell(i, j));
+            }
+        }
+        sudoku = newSudoku;
     }
 }
