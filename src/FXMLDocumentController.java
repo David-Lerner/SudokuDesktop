@@ -646,7 +646,8 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     public void newGame() {
         undoCurrentSelected();
-        reset(new Sudoku(sudokus.get(sudokuNumber++)));
+        if (sudokus.size() <= sudokuNumber)
+            reset(new Sudoku(sudokus.get(sudokuNumber++)));
     }
     
     @FXML
