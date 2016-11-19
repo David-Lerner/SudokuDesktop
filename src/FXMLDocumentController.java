@@ -5,11 +5,14 @@
  */
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -22,6 +25,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
@@ -652,7 +656,7 @@ public class FXMLDocumentController implements Initializable {
          if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION)
             filename = chooser.getSelectedFile().getPath();
          try {
-         BufferedReader br = new BufferedReader(new FileReader(DEFAULT_GAME));
+            BufferedReader br = new BufferedReader(new FileReader(DEFAULT_GAME));
             String line = br.readLine();  
                 if (line.contains("G")) {
                     char[][] initialBoard = new char[9][9];
@@ -679,6 +683,25 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     public void saveGame() {
         undoCurrentSelected();
+        TextInputDialog dialog = new TextInputDialog("New Game");
+        dialog.setTitle("Save a Sudoku puzzle");
+        dialog.setContentText("Please a name:");
+        Optional<String> result = dialog.showAndWait();
+        if (result.isPresent()){
+            try {
+            BufferedWriter out = new BufferedWriter(new FileWriter(result.get()));
+            out.write("Grid: "+result.get()+"\n");
+            for (int i = 0; i < 9; i++) {
+                for (int j = 0; j < 9; j++) {
+                    out.write(sudoku.getCell(i, j).getValue());
+                }
+                out.write("\n");
+            }
+            out.close();
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
+            }
+        }        
     }
     
     @FXML
