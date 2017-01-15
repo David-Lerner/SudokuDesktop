@@ -63,7 +63,7 @@ public class Sudoku {
             columns[i] = new SubSudoku(length);
             subgrids[i] = new SubSudoku(length);
         }
-        int base = (int)Math.sqrt(9);
+        int base = (int)Math.sqrt(length);
         for (int i = 0; i < length; i++) {
             for (int j = 0; j < length; j++) {
                 SubSudoku row = rows[i];
@@ -84,5 +84,17 @@ public class Sudoku {
     
     public Cell getCell(int i, int j) {
         return cells[i][j];
+    }
+    
+    public SubSudoku getRow(int i) {
+        return rows[i];
+    }
+    
+    public SubSudoku getColumn(int i) {
+        return columns[i];
+    }
+    
+    public SubSudoku getSubgrid(int i) {
+        return subgrids[i];
     }
 }

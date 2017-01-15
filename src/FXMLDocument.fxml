@@ -47,6 +47,11 @@
                   <Insets bottom="10.0" top="10.0" />
                </VBox.margin>
             </Button>
+            <Button mnemonicParsing="false" onAction="#test" text="Test">
+               <VBox.margin>
+                  <Insets bottom="10.0" top="10.0" />
+               </VBox.margin>
+            </Button>
          </children>
          <BorderPane.margin>
             <Insets />

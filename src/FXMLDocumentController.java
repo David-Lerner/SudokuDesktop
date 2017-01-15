@@ -385,9 +385,9 @@ public class FXMLDocumentController implements Initializable {
 
         public void setCell(Cell cell) {
             this.cell = cell;
-            setHighlighted(cell.isHighlighted());
-            if (cell.getValue() > 0 || (cell.getValue() == 0 && cell.getPossibilityCount() == 0))
-                setValue(cell.getValue());
+            inner.setFill(cell.isHighlighted()? Color.CYAN : Color.WHITE);
+            text.setText(String.valueOf(cell.getValue()));
+            text.setVisible(cell.getValue()!=0);
             text.setFont(Font.font(null, cell.isGiven()? FontWeight.EXTRA_BOLD : FontWeight.NORMAL, CELL_SIZE/2));
             text.setFill(cell.isGiven()? Color.BLUE : Color.BLACK);
             for (int i = 0; i < LENGTH; i++)
@@ -724,6 +724,33 @@ public class FXMLDocumentController implements Initializable {
             System.out.println("No solution");
         }*/
             
+    }
+    
+    @FXML
+    public void test() {
+        test1();
+    }
+    
+    public void test1() {
+        ArrayList<Solver> s1 = new ArrayList<>();
+        ArrayList<Solver> s2 = new ArrayList<>();
+        for (int[][] puzzle : sudokus) {
+            s1.add(new Solver(new Sudoku(puzzle)));
+            s2.add(new Solver(new Sudoku(puzzle)));
+        }
+        long start, time;
+        System.out.println("Starting Test:");
+        start = System.currentTimeMillis();
+        for (Solver s : s1)
+            s.testUpdate(1);
+        time = System.currentTimeMillis() - start;
+        System.out.printf("Time taken for s1: %,14d%n", time);
+        start = System.currentTimeMillis();
+        for (Solver s : s2)
+            s.testUpdate(2);
+        time = System.currentTimeMillis() - start;
+        System.out.printf("Time taken for s2: %,14d%n", time);
+        System.out.println("End Test:");
     }
     
     private void undoCurrentSelected() {
