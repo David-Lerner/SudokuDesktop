@@ -261,6 +261,7 @@ public class FXMLDocumentController implements Initializable {
             inner.setFill(cell.isHighlighted()? Color.CYAN : Color.WHITE);
 
             text.setFont(Font.font(null, cell.isGiven()? FontWeight.EXTRA_BOLD : FontWeight.NORMAL, CELL_SIZE/2));
+            text.setFill(cell.isGiven()? Color.BLUE : Color.BLACK);
             text.setText(String.valueOf(cell.getValue()));
             text.setVisible(cell.getValue()!=0);
             border.setVisible(selected);
@@ -385,8 +386,10 @@ public class FXMLDocumentController implements Initializable {
         public void setCell(Cell cell) {
             this.cell = cell;
             setHighlighted(cell.isHighlighted());
-            setValue(cell.getValue());
+            if (cell.getValue() > 0 || (cell.getValue() == 0 && cell.getPossibilityCount() == 0))
+                setValue(cell.getValue());
             text.setFont(Font.font(null, cell.isGiven()? FontWeight.EXTRA_BOLD : FontWeight.NORMAL, CELL_SIZE/2));
+            text.setFill(cell.isGiven()? Color.BLUE : Color.BLACK);
             for (int i = 0; i < LENGTH; i++)
                 possibles[i].setVisible(cell.containsPossibility(i+1));
         }
@@ -646,8 +649,8 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     public void newGame() {
         undoCurrentSelected();
-        if (sudokus.size() <= sudokuNumber)
-            reset(new Sudoku(sudokus.get(sudokuNumber++)));
+        //if (sudokus.size() <= sudokuNumber)
+        reset(new Sudoku(sudokus.get(sudokuNumber++)));
     }
     
     @FXML
@@ -708,12 +711,18 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     public void solveGame() {
         undoCurrentSelected();
-        Sudoku solution = Solver.solve(sudoku);
+        Solver s = new Solver(sudoku);
+        if (s.solve()) {
+            reset(sudoku);
+        } else {
+            System.out.println("No solution");
+        }
+        /*Sudoku solution = Solver.solve(sudoku);
         if (solution != null) {
             reset(solution);
         } else {
             System.out.println("No solution");
-        }
+        }*/
             
     }
     

@@ -62,4 +62,85 @@ public class Solver {
 
         return true; // no violations, so it's legal
     }
+
+    private Sudoku sudoku;
+    
+    public Solver(Sudoku s) {
+        sudoku = s;
+    }
+    
+    public boolean solve() {
+        System.out.println("Before:");
+        writeMatrix();
+        boolean changed = true;
+        while (changed) {
+            changed = checkColumnsAndRows();
+        }
+        System.out.println("After:");
+        writeMatrix();
+        
+        return true;
+    }
+    
+    private boolean checkColumnsAndRows() {
+        boolean changes = false;
+        for (int i = 0; i < sudoku.getLength(); ++i) {
+            for (int j = 0; j < sudoku.getLength(); ++j) {
+                Cell c = sudoku.getCell(i, j);
+                if (c.getValue() != 0)
+                    continue;
+                setPossibleValues(c, sudoku.getLength());
+                if (c.getPossibilityCount() == 1) {
+                    //found a number
+                    changes = true;
+                    int n = 1;
+                    while (!c.containsPossibility(n)) {
+                        ++n;
+                    }
+                    c.setValue(n);
+                    c.setPossibile(n, false);
+                }
+            }
+        }
+        return changes;
+    }
+    
+    private void setPossibleValues(Cell c, int length) {
+        for (int i = 1; i <= length; ++i) {
+            c.setPossibile(i, true);
+        }
+        
+        search: for (int i = 1; i <= length; ++i) { 
+            for (int j = 0; j < length; ++j) {
+                if (c.getColumn().getCell(j).getValue() == i) {
+                    c.setPossibile(i, false);
+                    continue search;
+                }
+                if (c.getRow().getCell(j).getValue() == i) {
+                    c.setPossibile(i, false);
+                    continue search;
+                }
+                if (c.getSubgrid().getCell(j).getValue() == i) {
+                    c.setPossibile(i, false);
+                    continue search;
+                }
+            }
+        }
+    }
+    
+    private void writeMatrix() {
+        for (int i = 0; i < 9; ++i) {
+            if (i % 3 == 0)
+                System.out.println(" -----------------------");
+            for (int j = 0; j < 9; ++j) {
+                if (j % 3 == 0) System.out.print("| ");
+                System.out.print(sudoku.getCell(i, j).getValue() == 0 ? " " : 
+                        Integer.toString(sudoku.getCell(i, j).getValue()));
+
+                System.out.print(' ');
+            }
+            System.out.println("|");
+        }
+        System.out.println(" -----------------------");
+    }
 }
