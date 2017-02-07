@@ -711,18 +711,18 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     public void solveGame() {
         undoCurrentSelected();
-        Solver s = new Solver(sudoku);
+        /*Solver s = new Solver(sudoku);
         if (s.solve()) {
             reset(sudoku);
         } else {
             System.out.println("No solution");
-        }
-        /*Sudoku solution = Solver.solve(sudoku);
+        }*/
+        Sudoku solution = Solver.solve(sudoku);
         if (solution != null) {
             reset(solution);
         } else {
             System.out.println("No solution");
-        }*/
+        }
             
     }
     
