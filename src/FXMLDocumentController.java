@@ -197,7 +197,6 @@ public class FXMLDocumentController implements Initializable {
         currentSelected = null;
         for (int i = 0; i < LENGTH; i++) {
             for (int j = 0; j < LENGTH; j++) {
-                System.out.println("Creating Tile "+(i*LENGTH+j));
                 final CellTile ct = new CellTile(sudoku.getCell(i,j));
                 ct.setId(String.valueOf(i*LENGTH+j));
                 ct.setOnMouseClicked((MouseEvent event) -> {
@@ -711,12 +710,12 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     public void solveGame() {
         undoCurrentSelected();
-        /*Solver s = new Solver(sudoku);
+        Solver s = new Solver(sudoku);
         if (s.solve()) {
             reset(sudoku);
         } else {
             System.out.println("No solution");
-        }*/
+        }
         Sudoku solution = Solver.solve(sudoku);
         if (solution != null) {
             reset(solution);
@@ -728,9 +727,11 @@ public class FXMLDocumentController implements Initializable {
     
     @FXML
     public void test() {
+        //change the test function to whatever appropriate functionality you are testing
         test1();
     }
     
+    //compares 2 different update implementations
     public void test1() {
         ArrayList<Solver> s1 = new ArrayList<>();
         ArrayList<Solver> s2 = new ArrayList<>();

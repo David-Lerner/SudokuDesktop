@@ -39,7 +39,7 @@ public class Sudoku {
                 SubSudoku row = rows[i];
                 SubSudoku column = columns[j];
                 SubSudoku subgrid = subgrids[(j/base+(i/base)*base)];
-                Cell cell = new Cell(j+i*length, length, row, column, subgrid);
+                Cell cell = new ACell(j+i*length, length, row, column, subgrid);
                 cells[i][j] = cell;
                 row.addcell(cell);
                 column.addcell(cell);
@@ -47,12 +47,16 @@ public class Sudoku {
             }
         }
     }
-    
+      
     /**
      * Create a Sudoku based on a given configuration
      * @param given a given n x n Sudoku with empty cells as 0
      */
     public Sudoku (int[][] given) {
+        this(given, new ACell());
+    }
+    
+    public Sudoku (int[][] given, Cell factory) {
         length = given.length;
         cells = new Cell[length][length];
         rows = new SubSudoku[length];
@@ -69,7 +73,7 @@ public class Sudoku {
                 SubSudoku row = rows[i];
                 SubSudoku column = columns[j];
                 SubSudoku subgrid = subgrids[(j/base+(i/base)*base)];
-                Cell cell = new Cell(j+i*length, length, given[i][j], row, column, subgrid, given[i][j]!=0);
+                Cell cell = factory.createCell(j+i*length, length, given[i][j], row, column, subgrid, given[i][j]!=0);
                 cells[i][j] = cell;
                 row.addcell(cell);
                 column.addcell(cell);
