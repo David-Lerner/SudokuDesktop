@@ -14,26 +14,26 @@ public class ACell implements Cell {
     private int possibilityCount;
     private SubSudoku row;
     private SubSudoku column;
-    private SubSudoku subgrid;
+    private SubSudoku box;
     private boolean highlighted;
     private boolean given;
 
     public ACell() {}; //as factory
     
     public ACell(int id, int length, SubSudoku row, SubSudoku column, 
-            SubSudoku subgrid) {
-        this(id, length, 0, row, column, subgrid, false);
+            SubSudoku box) {
+        this(id, length, 0, row, column, box, false);
     }
 
     public ACell(int id, int length, int value, SubSudoku row, SubSudoku column, 
-            SubSudoku subgrid, boolean given) {
+            SubSudoku box, boolean given) {
         this.id = id;
         this.value = value;
         possibles = new boolean[length];
         possibilityCount = 0;
         this.row = row;
         this.column = column;
-        this.subgrid = subgrid;
+        this.box = box;
         highlighted = false;
         this.given = given;
     }
@@ -54,8 +54,8 @@ public class ACell implements Cell {
     }
 
     @Override
-    public SubSudoku getSubgrid() {
-        return subgrid;
+    public SubSudoku getBox() {
+        return box;
     }
 
     @Override
@@ -120,7 +120,7 @@ public class ACell implements Cell {
     }
     
     @Override
-    public Cell createCell(int id, int length, int value, SubSudoku row, SubSudoku column, SubSudoku subgrid, boolean given) {
-        return new ACell(id, length, value, row, column, subgrid, given);
+    public Cell createCell(int id, int length, int value, SubSudoku row, SubSudoku column, SubSudoku box, boolean given) {
+        return new ACell(id, length, value, row, column, box, given);
     }
 }

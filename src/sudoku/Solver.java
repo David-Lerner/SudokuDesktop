@@ -24,7 +24,7 @@ public class Solver {
             return null;
     }
     
-    static boolean solve(int i, int j, int[][] cells) {
+    public static boolean solve(int i, int j, int[][] cells) {
         if (i == 9) {
             i = 0;
             if (++j == 9)
@@ -44,7 +44,7 @@ public class Solver {
         return false;
     }
 
-    static boolean legal(int i, int j, int val, int[][] cells) {
+    public static boolean legal(int i, int j, int val, int[][] cells) {
         for (int k = 0; k < 9; ++k)  // row
             if (val == cells[k][j])
                 return false;
@@ -72,6 +72,7 @@ public class Solver {
     public boolean solve() {
         //System.out.println("Before:");
         //writeMatrix();
+        initializeCells();
         int changed = 1;
         while (changed > 0) {
             update();
@@ -81,7 +82,20 @@ public class Solver {
         //System.out.println("After:");
         //writeMatrix();
         
-        return true;
+        return checkValidity(sudoku);
+    }
+    
+    private void initializeCells() {
+        int length = sudoku.getLength();
+        for (int i = 0; i < length; ++i) {
+            for (int j = 0; j < length; ++j) {
+                if (!sudoku.getCell(i, j).isGiven()) {
+                    sudoku.getCell(i, j).setValue(0);
+                    for (int n = 1; n <= length; ++n)
+                        sudoku.getCell(i, j).setPossibile(n, true);
+                }
+            }
+        }
     }
     
     private void update() {
@@ -115,14 +129,11 @@ public class Solver {
     }
     
     private void setPossibleValues(Cell c) {
-        for (int i = 1; i <= sudoku.getLength(); ++i) {
-            c.setPossibile(i, true);
-        }
         
         //version 1
         /*search: for (int i = 1; i <= sudoku.getLength(); ++i) { 
             for (int j = 0; j < sudoku.getLength(); ++j) {
-                if (c.getSubgrid().getCell(j).getValue() == i) {
+                if (c.getBox().getCell(j).getValue() == i) {
                     c.setPossibile(i, false);
                     continue search;
                 }
@@ -139,8 +150,8 @@ public class Solver {
         
         //version 2
         for (int i = 0; i < sudoku.getLength(); ++i) {
-            if (c.getSubgrid().getCell(i).getValue() != 0) {
-                c.setPossibile(c.getSubgrid().getCell(i).getValue(), false);
+            if (c.getBox().getCell(i).getValue() != 0) {
+                c.setPossibile(c.getBox().getCell(i).getValue(), false);
             }
             if (c.getColumn().getCell(i).getValue() != 0) {
                 c.setPossibile(c.getColumn().getCell(i).getValue(), false);
@@ -154,7 +165,7 @@ public class Solver {
     private int findHiddenSingles() {
         int changes = 0;
         for (int i = 0; i < sudoku.getLength(); ++i) {
-            changes += setHiddenSingles(sudoku.getSubgrid(i));
+            changes += setHiddenSingles(sudoku.getBox(i));
             //update();
             changes += setHiddenSingles(sudoku.getRow(i));
             //update();
@@ -186,6 +197,39 @@ public class Solver {
             }
         }
         return changes;
+    }
+    
+    public static boolean checkValidity(Sudoku s) {
+        int length = s.getLength();
+        //create box, row and column sets implented via boolean arrays
+        boolean[][] boxes = new boolean[length][length];
+        boolean[][] rows = new boolean[length][length];
+        boolean[][] columns = new boolean[length][length];
+        try {
+        for (int i = 0; i < length; i++) {
+            //check each box, row, and column for duplicate numbers
+            for (int j = 0; j < length; j++) {
+                if (boxes[i][s.getBox(i).getCell(j).getValue()-1])
+                    return false;
+                else
+                    boxes[i][s.getBox(i).getCell(j).getValue()-1] = true;
+                
+                if (rows[i][s.getRow(i).getCell(j).getValue()-1])
+                    return false;
+                else
+                    rows[i][s.getRow(i).getCell(j).getValue()-1] = true;
+                
+                if (columns[i][s.getColumn(i).getCell(j).getValue()-1])
+                    return false;
+                else
+                    columns[i][s.getColumn(i).getCell(j).getValue()-1] = true;
+            }
+        }
+        } catch (IndexOutOfBoundsException e) {
+            //if contains number outside of valid range, return false
+            return false;
+        }
+        return true;
     }
     
     private void writeMatrix() {
@@ -244,7 +288,7 @@ public class Solver {
         if (version == 1) {
             search: for (int i = 1; i <= sudoku.getLength(); ++i) { 
                 for (int j = 0; j < sudoku.getLength(); ++j) {
-                    if (c.getSubgrid().getCell(j).getValue() == i) {
+                    if (c.getBox().getCell(j).getValue() == i) {
                         c.setPossibile(i, false);
                         continue search;
                     }
@@ -260,8 +304,8 @@ public class Solver {
             }
         } else if (version == 2) {
             for (int i = 0; i < sudoku.getLength(); ++i) {
-                if (c.getSubgrid().getCell(i).getValue() != 0) {
-                    c.setPossibile(c.getSubgrid().getCell(i).getValue(), false);
+                if (c.getBox().getCell(i).getValue() != 0) {
+                    c.setPossibile(c.getBox().getCell(i).getValue(), false);
                 }
                 if (c.getColumn().getCell(i).getValue() != 0) {
                     c.setPossibile(c.getColumn().getCell(i).getValue(), false);

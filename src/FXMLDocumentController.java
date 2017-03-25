@@ -39,6 +39,8 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javax.swing.JFileChooser;
+import sudoku.ACell;
+import sudoku.BCell;
 import sudoku.Sudoku;
 import sudoku.Cell;
 import sudoku.Selectable;
@@ -716,19 +718,19 @@ public class FXMLDocumentController implements Initializable {
         } else {
             System.out.println("No solution");
         }
-        Sudoku solution = Solver.solve(sudoku);
+        /*Sudoku solution = Solver.solve(sudoku);
         if (solution != null) {
             reset(solution);
         } else {
             System.out.println("No solution");
-        }
+        }*/
             
     }
     
     @FXML
     public void test() {
         //change the test function to whatever appropriate functionality you are testing
-        test1();
+        test2();
     }
     
     //compares 2 different update implementations
@@ -751,6 +753,57 @@ public class FXMLDocumentController implements Initializable {
             s.testUpdate(2);
         time = System.currentTimeMillis() - start;
         System.out.printf("Time taken for s2: %,14d%n", time);
+        System.out.println("End Test:");
+    }
+    
+    //tests validity and timing of solvers
+    public void test2() {
+        ArrayList<Sudoku> s1 = new ArrayList<>();
+        ArrayList<Solver> s2 = new ArrayList<>();
+        for (int[][] puzzle : sudokus) {
+            s1.add(new Sudoku(puzzle));
+            s2.add(new Solver(new Sudoku(puzzle)));
+        }
+        long start, time;
+        System.out.println("Starting Test:");
+        int correct = 0;
+        start = System.currentTimeMillis();
+        for (Sudoku s : s1) {
+            if (Solver.checkValidity(Solver.solve(s)))
+                correct++;
+        }
+        time = System.currentTimeMillis() - start;
+        System.out.printf("Advanced solver: %d/%d correctly in %,14d%n", correct, s1.size(), time);
+        correct = 0;
+        start = System.currentTimeMillis();
+        for (Solver s : s2)
+            if (s.solve())
+                correct++;
+        time = System.currentTimeMillis() - start;
+        System.out.printf("Base solver: %d/%d correctly in %,14d%n", correct, s2.size(), time);
+        System.out.println("End Test:");
+    }
+    
+    //compares 2 different cell implementations
+    public void test3() {
+        ArrayList<Solver> s1 = new ArrayList<>();
+        ArrayList<Solver> s2 = new ArrayList<>();
+        for (int[][] puzzle : sudokus) {
+            s1.add(new Solver(new Sudoku(puzzle, new ACell())));
+            s2.add(new Solver(new Sudoku(puzzle, new BCell())));
+        }
+        long start, time;
+        System.out.println("Starting Test:");
+        start = System.currentTimeMillis();
+        for (Solver s : s1)
+            s.solve();
+        time = System.currentTimeMillis() - start;
+        System.out.printf("Time taken for ACell Implementation: %,14d%n", time);
+        start = System.currentTimeMillis();
+        for (Solver s : s2)
+            s.solve();
+        time = System.currentTimeMillis() - start;
+        System.out.printf("Time taken for BCell Implementation: %,14d%n", time);
         System.out.println("End Test:");
     }
     

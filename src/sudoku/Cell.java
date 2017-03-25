@@ -23,7 +23,7 @@ public interface Cell {
 
     SubSudoku getRow();
 
-    SubSudoku getSubgrid();
+    SubSudoku getBox();
 
     int getValue();
 
@@ -40,6 +40,6 @@ public interface Cell {
     void togglePossibile(int number);
     
     Cell createCell(int id, int length, int value, SubSudoku row, SubSudoku column, 
-            SubSudoku subgrid, boolean given);
+            SubSudoku box, boolean given);
     
 }

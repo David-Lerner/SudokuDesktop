@@ -14,25 +14,25 @@ public class BCell implements Cell{
     private BitSet possibles;
     private SubSudoku row;
     private SubSudoku column;
-    private SubSudoku subgrid;
+    private SubSudoku box;
     private boolean highlighted;
     private boolean given;
     
     public BCell() {}; //as factory
 
     public BCell(int id, int length, SubSudoku row, SubSudoku column, 
-            SubSudoku subgrid) {
-        this(id, length, 0, row, column, subgrid, false);
+            SubSudoku box) {
+        this(id, length, 0, row, column, box, false);
     }
 
     public BCell(int id, int length, int value, SubSudoku row, SubSudoku column, 
-            SubSudoku subgrid, boolean given) {
+            SubSudoku box, boolean given) {
         this.id = id;
         this.value = value;
         possibles = new BitSet(length);
         this.row = row;
         this.column = column;
-        this.subgrid = subgrid;
+        this.box = box;
         highlighted = false;
         this.given = given;
     }
@@ -49,8 +49,8 @@ public class BCell implements Cell{
         return column;
     }
 
-    public SubSudoku getSubgrid() {
-        return subgrid;
+    public SubSudoku getBox() {
+        return box;
     }
 
     public void setValue(int value) {
@@ -100,8 +100,8 @@ public class BCell implements Cell{
     }
 
     @Override
-    public Cell createCell(int id, int length, int value, SubSudoku row, SubSudoku column, SubSudoku subgrid, boolean given) {
-        return new BCell(id, length, value, row, column, subgrid, given);
+    public Cell createCell(int id, int length, int value, SubSudoku row, SubSudoku column, SubSudoku box, boolean given) {
+        return new BCell(id, length, value, row, column, box, given);
     }
     
     
