@@ -65,7 +65,7 @@ public class FXMLDocumentController implements Initializable {
     private static final int CELL_SIZE = 40;
     public static final int LENGTH = BASE*BASE;
     private static final int BORDER_SIZE = 1;
-    private static final String DEFAULT_GAME = "p096_sudoku.txt";
+    private static final String DEFAULT_GAME = "puzzler.txt";
 
     private Sudoku sudoku;
     private CellTile[][] cellGrid;
@@ -730,7 +730,7 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     public void test() {
         //change the test function to whatever appropriate functionality you are testing
-        test2();
+        test4();
     }
     
     //compares 2 different update implementations
@@ -804,6 +804,29 @@ public class FXMLDocumentController implements Initializable {
             s.solve();
         time = System.currentTimeMillis() - start;
         System.out.printf("Time taken for BCell Implementation: %,14d%n", time);
+        System.out.println("End Test:");
+    }
+    
+    //compares 2 different naked pair implementations
+    public void test4() {
+        ArrayList<Solver> s1 = new ArrayList<>();
+        ArrayList<Solver> s2 = new ArrayList<>();
+        for (int[][] puzzle : sudokus) {
+            s1.add(new Solver(new Sudoku(puzzle)));
+            s2.add(new Solver(new Sudoku(puzzle)));
+        }
+        long start, time;
+        System.out.println("Starting Test:");
+        start = System.currentTimeMillis();
+        for (Solver s : s1)
+            s.solve();
+        time = System.currentTimeMillis() - start;
+        System.out.printf("Time taken for findNakedPairs(): %,14d%n", time);
+        start = System.currentTimeMillis();
+        for (Solver s : s2)
+            s.solve2();
+        time = System.currentTimeMillis() - start;
+        System.out.printf("Time taken for findNakedPairs2(): %,14d%n", time);
         System.out.println("End Test:");
     }
     
