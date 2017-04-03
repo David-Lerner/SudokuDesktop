@@ -84,6 +84,9 @@ public class Solver {
             if (changed > 0)
                 continue;
             changed = findNakedTriples();
+            if (changed > 0)
+                continue;
+            changed = findHiddenPairs();
         }
         if (!checkValidity(Solver.solve(sudoku)))
             System.out.println("ERROR!");
@@ -324,6 +327,80 @@ public class Solver {
             }
         }
 
+        return changes;
+    }
+    
+    private int findHiddenPairs() {
+        int changes = 0;
+        for (int i = 0; i < sudoku.getLength(); ++i) {
+            changes += setHiddenPairs(sudoku.getBox(i));
+            changes += setHiddenPairs(sudoku.getRow(i));
+            changes += setHiddenPairs(sudoku.getColumn(i));
+        }
+        return changes;
+    }
+    
+    private int setHiddenPairs(SubSudoku s) {
+        int changes = 0;
+        int[] pairs = new int[sudoku.getLength()];
+        //find the indexes of hidden pairs
+        for (int n = 1; n <= sudoku.getLength(); ++n) {
+            int count = 0;
+            int ids = 0;
+            OUTER:
+            for (int i = 0; i < sudoku.getLength(); ++i) {
+                if (s.getCell(i).containsPossibility(n)) {
+                    ++count;
+                    //encode pair cell indexes as single int
+                    switch (count) {
+                        case 1:
+                            ids += i*sudoku.getLength();
+                            break;
+                        case 2:
+                            ids += i;
+                            break;
+                        default:
+                            break OUTER;
+                    }
+                }
+            }
+            pairs[n-1] = (count == 2) ? ids : -1;
+        }
+        for (int i = 0; i < pairs.length-1; i++) {
+            if (pairs[i] > 0) {
+                for (int j = i+1; j < pairs.length; j++) {
+                    if (pairs[i] == pairs[j]) {
+                        //hidden pair found
+                        int a = pairs[i] / sudoku.getLength();
+                        int b = pairs[i] % sudoku.getLength();
+                        System.out.println("hidden pair reduction");
+                        //remove other possibilities from cells a & b
+                        if (s.getCell(a).getPossibilityCount() > 2) {
+                            //increment change count only if pair was hidden
+                            changes++;
+                            for (int n = 1; n <= sudoku.getLength(); n++) {
+                                if (n != i+1 && n != j+1) {
+                                    //set all other possibilities to false
+                                    s.getCell(a).setPossibile(n, false);
+                                }
+                            }
+                        }
+                        if (s.getCell(b).getPossibilityCount() > 2) {
+                            //increment change count only if pair was hidden
+                            changes++;
+                            for (int n = 1; n <= sudoku.getLength(); n++) {
+                                if (n != i+1 && n != j+1) {
+                                    //set all other possibilities to false
+                                    s.getCell(b).setPossibile(n, false);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        
         return changes;
     }
     
