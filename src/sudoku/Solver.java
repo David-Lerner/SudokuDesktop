@@ -1,6 +1,7 @@
 package sudoku;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
@@ -80,8 +81,12 @@ public class Solver {
             if (changed > 0)
                 continue;
             changed = findNakedPairs();
+            if (changed > 0)
+                continue;
+            changed = findNakedTriples();
         }
-        
+        if (!checkValidity(Solver.solve(sudoku)))
+            System.out.println("ERROR!");
         //System.out.println("After:");
         //writeMatrix();
         
@@ -246,6 +251,79 @@ public class Solver {
                 break;
             }
         }
+        return changes;
+    }
+    
+    private int findNakedTriples() {
+        int changes = 0;
+        for (int i = 0; i < sudoku.getLength(); ++i) {
+            changes += setNakedTriples(sudoku.getBox(i));
+            changes += setNakedTriples(sudoku.getRow(i));
+            changes += setNakedTriples(sudoku.getColumn(i));
+        }
+        return changes;
+    }
+    
+    private int setNakedTriples(SubSudoku s) {
+        int changes = 0;
+        //find number of cells with 2-3 cells
+        int setSize = 0;
+        for (int i = 0; i < sudoku.getLength(); ++i) {
+            int count = s.getCell(i).getPossibilityCount();
+            if (count == 2 || count == 3) {
+                setSize++;
+            }
+        }
+        //return if < 3 cells with 2-3 cells
+        if (setSize < 3) {
+            return changes;
+        }
+        
+        //create/fill set data structures for finding triples
+        int[] indexes = new int[setSize];
+        BitSet[] possibilities = new BitSet[setSize];
+        int index = 0;
+        for (int i = 0; i < setSize; ++i) {
+            Cell c = s.getCell(index);
+            while (c.getPossibilityCount() != 3 && c.getPossibilityCount() != 2 ) {
+                c = s.getCell(++index);
+            }
+            //add index to triples set
+            indexes[i] = index++;
+            //create bitset representing possibilities
+            possibilities[i] = new BitSet(sudoku.getLength());
+            for (int n = 1; n <= sudoku.getLength(); n++) {
+                if (c.containsPossibility(n)) {
+                    possibilities[i].set(n-1);
+                }
+            }
+        }
+        //check if the union of all combinations of three cells form a set of size 3 
+        for (int i = 0; i < setSize; ++i) {
+            for (int j = i+1; j < setSize; ++j) {
+                for (int k = j+1; k < setSize; ++k) {
+                    BitSet union = possibilities[i].get(0, sudoku.getLength());
+                    union.or(possibilities[j]);
+                    union.or(possibilities[k]);
+                    if (union.cardinality() == 3) {
+                        //triple found
+                        int a = union.nextSetBit(0)+1;
+                        int b = union.nextSetBit(a)+1;
+                        int c = union.nextSetBit(b)+1;
+                        //remove possibilities from other cells
+                        for (int n = 0; n < sudoku.getLength(); n++) {
+                            Cell temp = s.getCell(n);
+                            if (temp.getValue() == 0 && n != indexes[i] && n != indexes[j] && n != indexes[k]) {
+                                //increment change count only if possibilty(s) were set
+                                //System.out.println("naked triple reduction");
+                                changes += (temp.setPossibile(a, false) | temp.setPossibile(b, false) | temp.setPossibile(c, false)) ? 1 : 0;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         return changes;
     }
     

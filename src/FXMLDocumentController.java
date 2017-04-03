@@ -730,7 +730,7 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     public void test() {
         //change the test function to whatever appropriate functionality you are testing
-        test4();
+        test2();
     }
     
     //compares 2 different update implementations
