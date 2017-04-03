@@ -5,6 +5,8 @@
  */
 package sudoku;
 
+import java.util.BitSet;
+
 /**
  *
  * @author David
@@ -39,6 +41,7 @@ public interface Cell {
 
     void togglePossibile(int number);
     
+    //for factory
     Cell createCell(int id, int length, int value, SubSudoku row, SubSudoku column, 
             SubSudoku box, boolean given);
     

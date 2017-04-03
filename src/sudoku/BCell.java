@@ -103,6 +103,6 @@ public class BCell implements Cell{
     public Cell createCell(int id, int length, int value, SubSudoku row, SubSudoku column, SubSudoku box, boolean given) {
         return new BCell(id, length, value, row, column, box, given);
     }
-    
+
     
 }
