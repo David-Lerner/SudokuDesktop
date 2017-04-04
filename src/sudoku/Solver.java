@@ -147,27 +147,10 @@ public class Solver {
         return changes;
     }
     
-    private void setPossibleValues(Cell c) {
-        
-        //version 1
-        /*search: for (int i = 1; i <= sudoku.getLength(); ++i) { 
-            for (int j = 0; j < sudoku.getLength(); ++j) {
-                if (c.getBox().getCell(j).getValue() == i) {
-                    c.setPossibile(i, false);
-                    continue search;
-                }
-                if (c.getColumn().getCell(j).getValue() == i) {
-                    c.setPossibile(i, false);
-                    continue search;
-                }
-                if (c.getRow().getCell(j).getValue() == i) {
-                    c.setPossibile(i, false);
-                    continue search;
-                }
-            }
-        }*/
-        
-        //version 2
+    private int setPossibleValues(Cell c) {
+        int changes = 0;
+        int preset = c.getPossibilityCount();
+        //remove all possibilities that are already given in the cell's box, row, and column
         for (int i = 0; i < sudoku.getLength(); ++i) {
             if (c.getBox().getCell(i).getValue() != 0) {
                 c.setPossibile(c.getBox().getCell(i).getValue(), false);
@@ -179,17 +162,19 @@ public class Solver {
                 c.setPossibile(c.getRow().getCell(i).getValue(), false);
             }
         }
+        if (c.getPossibilityCount() < preset) {
+            //possibilities were removed
+            ++changes;
+        }
+        return changes;
     }
     
     private int findHiddenSingles() {
         int changes = 0;
         for (int i = 0; i < sudoku.getLength(); ++i) {
             changes += setHiddenSingles(sudoku.getBox(i));
-            //update();
             changes += setHiddenSingles(sudoku.getRow(i));
-            //update();
             changes += setHiddenSingles(sudoku.getColumn(i));
-            //update();
         }
         return changes;
     }
@@ -223,43 +208,43 @@ public class Solver {
     private int findNakedPairs() {
         int changes = 0;
         for (int i = 0; i < sudoku.getLength(); ++i) {
-            for (int j = 0; j < sudoku.getLength(); ++j) {
-                Cell c = sudoku.getCell(i, j);
-                if (c.getPossibilityCount() == 2) {
-                    //cell contains a pair
-                    int n = 1;
-                    while (!c.containsPossibility(n)) {
-                        ++n;
-                    }
-                    int a = n++;
-                    while (!c.containsPossibility(n)) {
-                        ++n;
-                    }
-                    int b = n;
-                    changes += setNakedPairs(c, c.getBox(), a, b);
-                    changes += setNakedPairs(c, c.getColumn(), a, b);
-                    changes += setNakedPairs(c, c.getRow(), a, b);
-                }
-            }
+            changes += setNakedPairs(sudoku.getBox(i));
+            changes += setNakedPairs(sudoku.getRow(i));
+            changes += setNakedPairs(sudoku.getColumn(i));
         }
         return changes;
     }
     
-    private int setNakedPairs(Cell c, SubSudoku s, int a, int b) {
+    private int setNakedPairs(SubSudoku s) {
         int changes = 0;
         for (int i = 0; i < sudoku.getLength(); ++i) {
-            Cell other = s.getCell(i);
-            if (other.getPossibilityCount() == 2 && other.getId() != c.getId() && other.containsPossibility(a) && other.containsPossibility(b)) {
-                //if a pair is found, remove the pair from the other cells
-                for (int j = 0; j < sudoku.getLength(); j++) {
-                    Cell temp = s.getCell(j);
-                    if (temp.getValue() == 0 && i != j && temp.getId() != c.getId()) {
-                        //increment change count only if possibilty(s) were set
-                        //System.out.println("naked pair reduction");
-                        changes += (temp.setPossibile(a, false) | temp.setPossibile(b, false)) ? 1 : 0;
+            Cell c = s.getCell(i);
+            //check if cell contains a pair
+            if (c.getPossibilityCount() != 2)
+                continue;
+            //pair is a, b
+            int n = 1;
+            while (!c.containsPossibility(n))
+                ++n;
+            int a = n++;
+            while (!c.containsPossibility(n))
+                ++n;
+            int b = n;
+            //check if other cells contain the pair a, b
+            for (int j = i+1; j < sudoku.getLength(); ++j) {
+                Cell other = s.getCell(j);
+                if (other.getPossibilityCount() == 2 && other.containsPossibility(a) && other.containsPossibility(b)) {
+                    //if a match is found, remove the pair from all other cells
+                    for (int k = 0; k < sudoku.getLength(); k++) {
+                        Cell temp = s.getCell(k);
+                        if (temp.getValue() == 0 && j != k && temp.getId() != c.getId()) {
+                            //increment change count only if possibilty(s) were set
+                            //System.out.println("naked pair reduction");
+                            changes += (temp.setPossibile(a, false) | temp.setPossibile(b, false)) ? 1 : 0;
+                        }
                     }
+                    break;
                 }
-                break;
             }
         }
         return changes;
@@ -633,43 +618,43 @@ public class Solver {
     private int findNakedPairs2() {
         int changes = 0;
         for (int i = 0; i < sudoku.getLength(); ++i) {
-            changes += setNakedPairs2(sudoku.getBox(i));
-            changes += setNakedPairs2(sudoku.getRow(i));
-            changes += setNakedPairs2(sudoku.getColumn(i));
+            for (int j = 0; j < sudoku.getLength(); ++j) {
+                Cell c = sudoku.getCell(i, j);
+                if (c.getPossibilityCount() == 2) {
+                    //cell contains a pair
+                    int n = 1;
+                    while (!c.containsPossibility(n)) {
+                        ++n;
+                    }
+                    int a = n++;
+                    while (!c.containsPossibility(n)) {
+                        ++n;
+                    }
+                    int b = n;
+                    changes += setNakedPairs2(c, c.getBox(), a, b);
+                    changes += setNakedPairs2(c, c.getColumn(), a, b);
+                    changes += setNakedPairs2(c, c.getRow(), a, b);
+                }
+            }
         }
         return changes;
     }
     
-    private int setNakedPairs2(SubSudoku s) {
+    private int setNakedPairs2(Cell c, SubSudoku s, int a, int b) {
         int changes = 0;
         for (int i = 0; i < sudoku.getLength(); ++i) {
-            Cell c = s.getCell(i);
-            //check if cell contains a pair
-            if (c.getPossibilityCount() != 2)
-                continue;
-            //pair is a, b
-            int n = 1;
-            while (!c.containsPossibility(n))
-                ++n;
-            int a = n++;
-            while (!c.containsPossibility(n))
-                ++n;
-            int b = n;
-            //check if other cells contain the pair a, b
-            for (int j = i+1; j < sudoku.getLength(); ++j) {
-                Cell other = s.getCell(j);
-                if (other.getPossibilityCount() == 2 && other.containsPossibility(a) && other.containsPossibility(b)) {
-                    //if a match is found, remove the pair from all other cells
-                    for (int k = 0; k < sudoku.getLength(); k++) {
-                        Cell temp = s.getCell(k);
-                        if (temp.getValue() == 0 && j != k && temp.getId() != c.getId()) {
-                            //increment change count only if possibilty(s) were set
-                            //System.out.println("naked pair reduction");
-                            changes += (temp.setPossibile(a, false) | temp.setPossibile(b, false)) ? 1 : 0;
-                        }
+            Cell other = s.getCell(i);
+            if (other.getPossibilityCount() == 2 && other.getId() != c.getId() && other.containsPossibility(a) && other.containsPossibility(b)) {
+                //if a pair is found, remove the pair from the other cells
+                for (int j = 0; j < sudoku.getLength(); j++) {
+                    Cell temp = s.getCell(j);
+                    if (temp.getValue() == 0 && i != j && temp.getId() != c.getId()) {
+                        //increment change count only if possibilty(s) were set
+                        //System.out.println("naked pair reduction");
+                        changes += (temp.setPossibile(a, false) | temp.setPossibile(b, false)) ? 1 : 0;
                     }
-                    break;
                 }
+                break;
             }
         }
         return changes;
