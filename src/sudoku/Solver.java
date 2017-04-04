@@ -95,6 +95,10 @@ public class Solver {
                 continue;
             changed = findHiddenTriples();
             //System.out.println("Hidden Triples: "+changed);
+            if (changed > 0)
+                continue;
+            changed = intersectionRemoval();
+            //System.out.println("Intersection Reduction: "+changed);
         }
         if (!checkValidity(Solver.solve(sudoku)))
             System.out.println("ERROR!");
@@ -476,6 +480,96 @@ public class Solver {
             }
         }
         
+        return changes;
+    }
+    
+    private int intersectionRemoval() {
+        int changes = 0;
+        for (int i = 0; i < sudoku.getLength(); ++i) {
+            changes += pointingNumbers(sudoku.getBox(i));
+            changes += boxLine(sudoku.getRow(i));
+            changes += boxLine(sudoku.getColumn(i));
+        }
+        return changes;
+    }
+    
+    private int pointingNumbers(SubSudoku s) {
+        int changes = 0;
+        //remove all possibilities of numbers in the rows/columns outside the intersections
+        for (int n = 1; n < sudoku.getLength(); ++n) {
+            SubSudoku row = null;
+            SubSudoku column = null;
+            boolean rowPointer = false;
+            boolean columnPointer = false;
+            for (int i = 0; i < sudoku.getLength(); ++i) {
+                Cell c = s.getCell(i);
+                if (c.containsPossibility(n)) {
+                    //check if all possible n's are in a single row
+                    if (row == null) {
+                        row = c.getRow();
+                        rowPointer = true;
+                    } else if (row != c.getRow()) {
+                        rowPointer = false;
+                    }
+                    //check if all possible n's are in a single column
+                    if (column == null) {
+                        column = c.getColumn();
+                        columnPointer = true;
+                    } else if (column != c.getColumn()) {
+                        columnPointer = false;
+                    }
+                }
+            }
+            if (rowPointer) {
+                for (int i = 0; i < sudoku.getLength(); ++i) {
+                    if (row.getCell(i).getBox() != s) {
+                        //remove possibilities of cells in the same row but not in the same box
+                        //System.out.println("intersection reduction");
+                        changes += row.getCell(i).setPossibile(n, false) ? 1 : 0;
+                    }
+                }
+            }
+            if (columnPointer) {
+                for (int i = 0; i < sudoku.getLength(); ++i) {
+                    if (column.getCell(i).getBox() != s) {
+                        //remove possibilities of cells in the same row but not in the same box
+                        //System.out.println("intersection reduction");
+                        changes += column.getCell(i).setPossibile(n, false) ? 1 : 0;
+                    }
+                }
+            }
+        }
+        return changes;
+    }
+    
+    private int boxLine(SubSudoku s) {
+        int changes = 0;
+        //remove all possibilities of numbers in the boxes outside the intersections
+        for (int n = 1; n < sudoku.getLength(); ++n) {
+            SubSudoku box = null;
+            boolean boxPointer = false;
+            for (int i = 0; i < sudoku.getLength(); ++i) {
+                Cell c = s.getCell(i);
+                if (c.containsPossibility(n)) {
+                    //check if all possible n's are in a single box
+                    if (box == null) {
+                        box = c.getBox();
+                        boxPointer = true;
+                    } else if (box != c.getBox()) {
+                        boxPointer = false;
+                    }
+                }
+            }
+            if (boxPointer) {
+                for (int i = 0; i < sudoku.getLength(); ++i) {
+                    if (box.getCell(i).getRow() != s && box.getCell(i).getColumn() != s) {
+                        //remove possibilities of cells in the same box but not in the same row/column
+                        //System.out.println("intersection reduction");
+                        changes += box.getCell(i).setPossibile(n, false) ? 1 : 0;
+                    }
+                }
+            }
+        }
         return changes;
     }
     
