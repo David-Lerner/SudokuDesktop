@@ -78,15 +78,23 @@ public class Solver {
         while (changed > 0) {
             update();
             changed = findHiddenSingles();
+            //System.out.println("Hidden Singles: "+changed);
             if (changed > 0)
                 continue;
             changed = findNakedPairs();
+            //System.out.println("Naked Pairs: "+changed);
             if (changed > 0)
                 continue;
             changed = findNakedTriples();
+            //System.out.println("Naked Triples: "+changed);
             if (changed > 0)
                 continue;
             changed = findHiddenPairs();
+            //System.out.println("Hidden Pairs: "+changed);
+            if (changed > 0)
+                continue;
+            changed = findHiddenTriples();
+            //System.out.println("Hidden Triples: "+changed);
         }
         if (!checkValidity(Solver.solve(sudoku)))
             System.out.println("ERROR!");
@@ -301,9 +309,9 @@ public class Solver {
                 }
             }
         }
-        //check if the union of all combinations of three cells form a set of size 3 
-        for (int i = 0; i < setSize; ++i) {
-            for (int j = i+1; j < setSize; ++j) {
+        //check if the union of all combinations of three cells forms a set of size 3 
+        for (int i = 0; i < setSize-2; ++i) {
+            for (int j = i+1; j < setSize-1; ++j) {
                 for (int k = j+1; k < setSize; ++k) {
                     BitSet union = possibilities[i].get(0, sudoku.getLength());
                     union.or(possibilities[j]);
@@ -373,7 +381,7 @@ public class Solver {
                         //hidden pair found
                         int a = pairs[i] / sudoku.getLength();
                         int b = pairs[i] % sudoku.getLength();
-                        System.out.println("hidden pair reduction");
+                        //System.out.println("hidden pair reduction");
                         //remove other possibilities from cells a & b
                         if (s.getCell(a).getPossibilityCount() > 2) {
                             //increment change count only if pair was hidden
@@ -404,7 +412,91 @@ public class Solver {
         return changes;
     }
     
+    private int findHiddenTriples() {
+        int changes = 0;
+        for (int i = 0; i < sudoku.getLength(); ++i) {
+            changes += setHiddenTriples(sudoku.getBox(i));
+            changes += setHiddenTriples(sudoku.getRow(i));
+            changes += setHiddenTriples(sudoku.getColumn(i));
+        }
+        return changes;
+    }
+    
+    private int setHiddenTriples(SubSudoku s) {
+        int changes = 0;
+        
+        BitSet indexes[] = new BitSet[sudoku.getLength()];
+        int[] counts = new int[sudoku.getLength()];
+        //find the the counts and index bitset of each number
+        for (int n = 1; n <= sudoku.getLength(); ++n) {
+            int count = 0;
+            indexes[n-1] = new BitSet(sudoku.getLength());
+            for (int i = 0; i < sudoku.getLength(); ++i) {
+                if (s.getCell(i).containsPossibility(n)) {
+                    ++count;
+                    //save the index to corresponding bitset
+                    if (count <= 3) {
+                        indexes[n-1].set(i);
+                    } else {
+                        break;
+                    }
+                }
+            }
+            //save count if = 2 or 3
+            counts[n-1] = (count == 2 || count == 3) ? count : -1;
+        }
+        
+        //check if the union of all combinations of three numbers that appear 2-3 times forms a set of size 3 
+        for (int i = 0; i < sudoku.getLength()-2; ++i) {
+            if (counts[i] < 2)
+                continue;
+            for (int j = i+1; j < sudoku.getLength()-1; ++j) {
+                if (counts[j] < 2)
+                    continue;
+                for (int k = j+1; k < sudoku.getLength(); ++k) {
+                    if (counts[k] < 2)
+                        continue;
+                    BitSet union = indexes[i].get(0, sudoku.getLength());
+                    union.or(indexes[j]);
+                    union.or(indexes[k]);
+                    if (union.cardinality() == 3) {
+                        //hidden triple found
+                        int a = union.nextSetBit(0);
+                        int b = union.nextSetBit(a);
+                        int c = union.nextSetBit(b);
+                        //remove other possibilities from cells a, b, and c
+                        boolean aChanged = false;
+                        boolean bChanged = false;
+                        boolean cChanged = false;
+                        for (int n = 1; n <= sudoku.getLength(); n++) {
+                            if (n != i+1 && n != j+1 && n != k+1) {
+                                //set all other possibilities to false
+                                //System.out.println("hidden triple reduction");
+                                if (s.getCell(a).setPossibile(n, false)) {
+                                    aChanged = true;
+                                }
+                                if (s.getCell(b).setPossibile(n, false)) {
+                                    bChanged = true;
+                                }
+                                if (s.getCell(c).setPossibile(n, false)) {
+                                    cChanged = true;
+                                }
+                                changes += (aChanged ? 1 : 0) 
+                                        + (bChanged ? 1 : 0)
+                                        + (cChanged ? 1 : 0);
+                            }
+                        }                        
+                    }
+                }
+            }
+        }
+        
+        return changes;
+    }
+    
     public static boolean checkValidity(Sudoku s) {
+        if (s == null)
+            return false;
         int length = s.getLength();
         //create box, row and column sets implented via boolean arrays
         boolean[][] boxes = new boolean[length][length];
