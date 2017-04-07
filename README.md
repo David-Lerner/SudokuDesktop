@@ -1,7 +1,7 @@
-# SudokuDesktop
-A desktop application for the CompleteSudoku Project. This is used to design and test the Sudoku algorithms and gameplay.
-Installation
------------
+# SudokuDesktop 
+A desktop application for the CompleteSudoku Project. 
+This is used to design and test the Sudoku algorithms and gameplay.
+## Installation
 This program uses JavaFX for the GUI and therefore requires having Java 8 installed.
 ```shell
 git clone https://github.com/David-Lerner/SudokuDesktop
