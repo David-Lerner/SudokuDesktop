@@ -2,6 +2,7 @@ package sudoku;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Stack;
 import java.util.Collections;
 import java.util.List;
 
@@ -65,18 +66,95 @@ public class Solver {
     }
 
     private Sudoku sudoku;
+    private int length;
+    private int remaining;
+    private int[] strategyCounts;
+    private int[] cellStrategies;
+    private Stack<Sudoku> sudokuStack;
+    private Stack<Integer> remainingStack;
+    private Stack<int[]> strategyCountStack;
+    private Stack<int[]> cellStrategyStack;
     
     public Solver(Sudoku s) {
         sudoku = s;
+        length = s.getLength();
+        remaining = length*length;
+        //8 strategies + no strategy (given)
+        strategyCounts = new int[9];
+        cellStrategies = new int[length*length];
+        sudokuStack = new Stack<>();
+        remainingStack = new Stack<>();
+        strategyCountStack = new Stack<>();
+        cellStrategyStack = new Stack<>();
     }
     
+    /*
+    Strategy index:
+    0: None
+    1: Possible Values
+    2: Hidden Singles
+    3: Naked Pairs
+    4: Naked Triples
+    5: Hidden Pairs
+    6: Hidden Triples
+    7: Intersection Removal
+    8: Brute Force
+    */
+    private void setCellStrategy(Cell c, int strategy) {
+        if (strategy > cellStrategies[c.getId()])
+            cellStrategies[c.getId()] = strategy;
+    }
+    
+    public static String getStrategyName(int index) {
+        String[] strategyNames = {"None", 
+            "Possible Values",
+            "Hidden Singles",
+            "Naked Pairs",
+            "Naked Triples",
+            "Hidden Pairs",
+            "Hidden Triples",
+            "Intersection Removal",
+            "Brute Force"};
+        if (index < strategyNames.length && index >= 0) {
+            return strategyNames[index];
+        }
+        return "None";
+    }
+    
+    public int getStrategyCount(int index) {
+        if (index < strategyCounts.length &&  index >= 0)
+            return strategyCounts[index];
+        return 0;
+    }
+    
+    public int getStrategyCountByCell(int index) {
+        int[] byCell = new int[9];
+        for (int i = 0; i < cellStrategies.length; i++) {
+            byCell[cellStrategies[i]]++;
+        }
+        if (index < byCell.length && index >= 0)
+            return byCell[index];
+        return 0;
+    }
+    
+    private void printStrategies() {  
+        for (int i = 0; i < 9; i++) {
+            System.out.printf("%-21s %3d By Cell: %d%n", 
+                    getStrategyName(i)+":", getStrategyCount(i), getStrategyCountByCell(i));
+        }
+    }
+   
     public boolean solve() {
         //System.out.println("Before:");
         //writeMatrix();
         initializeCells();
         int changed = 1;
         while (changed > 0) {
-            update();
+            if (update() < 0)
+                return false;
+            if (remaining == 0) {
+                break;
+            }
             changed = findHiddenSingles();
             //System.out.println("Hidden Singles: "+changed);
             if (changed > 0)
@@ -100,8 +178,11 @@ public class Solver {
             changed = intersectionRemoval();
             //System.out.println("Intersection Reduction: "+changed);
         }
-        if (!checkValidity(Solver.solve(sudoku)))
-            System.out.println("ERROR!");
+        
+        //printStrategies();
+        if (!checkValidity(Solver.solve(sudoku))) {
+            System.out.print("ERROR!"+System.lineSeparator());
+        }
         //System.out.println("After:");
         //writeMatrix();
         
@@ -109,10 +190,11 @@ public class Solver {
     }
     
     private void initializeCells() {
-        int length = sudoku.getLength();
         for (int i = 0; i < length; ++i) {
             for (int j = 0; j < length; ++j) {
-                if (!sudoku.getCell(i, j).isGiven()) {
+                if (sudoku.getCell(i, j).isGiven()) {
+                    remaining--;
+                } else {
                     sudoku.getCell(i, j).setValue(0);
                     for (int n = 1; n <= length; ++n)
                         sudoku.getCell(i, j).setPossibile(n, true);
@@ -121,24 +203,29 @@ public class Solver {
         }
     }
     
-    private void update() {
-        int changed = 1;
-        while (changed > 0) {
-            changed = findPossibleValues();
+    private int update() {
+        int solved = 1;
+        while (solved > 0) {
+            solved = findPossibleValues();
         }
+        return solved;
     }
     
     private int findPossibleValues() {
+        int solved = 0;
         int changes = 0;
-        for (int i = 0; i < sudoku.getLength(); ++i) {
-            for (int j = 0; j < sudoku.getLength(); ++j) {
+        for (int i = 0; i < length; ++i) {
+            for (int j = 0; j < length; ++j) {
                 Cell c = sudoku.getCell(i, j);
                 if (c.getValue() != 0)
                     continue;
-                setPossibleValues(c);
-                if (c.getPossibilityCount() == 1) {
+                changes += setPossibleValues(c);
+                if (c.getPossibilityCount() == 0) {
+                    return -1;
+                } else if (c.getPossibilityCount() == 1) {
                     //found a number
-                    ++changes;
+                    ++solved;
+                    --remaining;
                     int n = 1;
                     while (!c.containsPossibility(n)) {
                         ++n;
@@ -148,14 +235,16 @@ public class Solver {
                 }
             }
         }
-        return changes;
+        //System.out.println("Possible Values: "+changes);
+        strategyCounts[1] += changes;
+        return solved;
     }
     
     private int setPossibleValues(Cell c) {
         int changes = 0;
         int preset = c.getPossibilityCount();
         //remove all possibilities that are already given in the cell's box, row, and column
-        for (int i = 0; i < sudoku.getLength(); ++i) {
+        for (int i = 0; i < length; ++i) {
             if (c.getBox().getCell(i).getValue() != 0) {
                 c.setPossibile(c.getBox().getCell(i).getValue(), false);
             }
@@ -168,6 +257,8 @@ public class Solver {
         }
         if (c.getPossibilityCount() < preset) {
             //possibilities were removed
+            //System.out.println("Reduction: possible value");
+            setCellStrategy(c, 1);
             ++changes;
         }
         return changes;
@@ -175,19 +266,20 @@ public class Solver {
     
     private int findHiddenSingles() {
         int changes = 0;
-        for (int i = 0; i < sudoku.getLength(); ++i) {
+        for (int i = 0; i < length; ++i) {
             changes += setHiddenSingles(sudoku.getBox(i));
             changes += setHiddenSingles(sudoku.getRow(i));
             changes += setHiddenSingles(sudoku.getColumn(i));
         }
+        strategyCounts[2] += changes;
         return changes;
     }
     
     private int setHiddenSingles(SubSudoku s) {
         int changes = 0;
-        for (int n = 1; n <= sudoku.getLength(); ++n) {
+        for (int n = 1; n <= length; ++n) {
             int index = 0, count = 0;
-            for (int i = 0; i < sudoku.getLength(); ++i) {
+            for (int i = 0; i < length; ++i) {
                 if (s.getCell(i).containsPossibility(n)) {
                     ++count;
                     if (count > 1) 
@@ -198,12 +290,14 @@ public class Solver {
             }
             if (count == 1) {
                 //found a number
-                //System.out.println("hidden single");
+                Cell c = s.getCell(index);
+                //System.out.println("Reduction: hidden single");
                 ++changes;
                 /*s.getCell(index).setValue(n);*/
-                for (int i = 1; i <= sudoku.getLength(); ++i)
-                    s.getCell(index).setPossibile(i, false);
-                s.getCell(index).setPossibile(n, true);
+                for (int i = 1; i <= length; ++i)
+                    c.setPossibile(i, false);
+                c.setPossibile(n, true);
+                setCellStrategy(c, 2);
             }
         }
         return changes;
@@ -211,17 +305,18 @@ public class Solver {
     
     private int findNakedPairs() {
         int changes = 0;
-        for (int i = 0; i < sudoku.getLength(); ++i) {
+        for (int i = 0; i < length; ++i) {
             changes += setNakedPairs(sudoku.getBox(i));
             changes += setNakedPairs(sudoku.getRow(i));
             changes += setNakedPairs(sudoku.getColumn(i));
         }
+        strategyCounts[3] += changes;
         return changes;
     }
     
     private int setNakedPairs(SubSudoku s) {
         int changes = 0;
-        for (int i = 0; i < sudoku.getLength(); ++i) {
+        for (int i = 0; i < length; ++i) {
             Cell c = s.getCell(i);
             //check if cell contains a pair
             if (c.getPossibilityCount() != 2)
@@ -235,17 +330,25 @@ public class Solver {
                 ++n;
             int b = n;
             //check if other cells contain the pair a, b
-            for (int j = i+1; j < sudoku.getLength(); ++j) {
+            for (int j = i+1; j < length; ++j) {
                 Cell other = s.getCell(j);
                 if (other.getPossibilityCount() == 2 && other.containsPossibility(a) && other.containsPossibility(b)) {
                     //if a match is found, remove the pair from all other cells
-                    for (int k = 0; k < sudoku.getLength(); k++) {
-                        Cell temp = s.getCell(k);
+                    int cellsModified = 0;
+                    for (int k = 0; k < length; k++) {
+                        Cell temp = s.getCell(k);         
                         if (temp.getValue() == 0 && j != k && temp.getId() != c.getId()) {
-                            //increment change count only if possibilty(s) were set
-                            //System.out.println("naked pair reduction");
-                            changes += (temp.setPossibile(a, false) | temp.setPossibile(b, false)) ? 1 : 0;
+                            //increment cells modified count only if possibilty(s) were set                            
+                            if (temp.setPossibile(a, false) | temp.setPossibile(b, false)) {
+                                //System.out.println("Reduction: naked pair");
+                                ++cellsModified;
+                                setCellStrategy(temp, 3);
+                            }
                         }
+                    }
+                    //increment change count only if cells were modified
+                    if (cellsModified > 0) {
+                        ++changes;
                     }
                     break;
                 }
@@ -256,11 +359,12 @@ public class Solver {
     
     private int findNakedTriples() {
         int changes = 0;
-        for (int i = 0; i < sudoku.getLength(); ++i) {
+        for (int i = 0; i < length; ++i) {
             changes += setNakedTriples(sudoku.getBox(i));
             changes += setNakedTriples(sudoku.getRow(i));
             changes += setNakedTriples(sudoku.getColumn(i));
         }
+        strategyCounts[4] += changes;
         return changes;
     }
     
@@ -268,7 +372,7 @@ public class Solver {
         int changes = 0;
         //find number of cells with 2-3 cells
         int setSize = 0;
-        for (int i = 0; i < sudoku.getLength(); ++i) {
+        for (int i = 0; i < length; ++i) {
             int count = s.getCell(i).getPossibilityCount();
             if (count == 2 || count == 3) {
                 setSize++;
@@ -291,8 +395,8 @@ public class Solver {
             //add index to triples set
             indexes[i] = index++;
             //create bitset representing possibilities
-            possibilities[i] = new BitSet(sudoku.getLength());
-            for (int n = 1; n <= sudoku.getLength(); n++) {
+            possibilities[i] = new BitSet(length);
+            for (int n = 1; n <= length; n++) {
                 if (c.containsPossibility(n)) {
                     possibilities[i].set(n-1);
                 }
@@ -302,7 +406,7 @@ public class Solver {
         for (int i = 0; i < setSize-2; ++i) {
             for (int j = i+1; j < setSize-1; ++j) {
                 for (int k = j+1; k < setSize; ++k) {
-                    BitSet union = possibilities[i].get(0, sudoku.getLength());
+                    BitSet union = possibilities[i].get(0, length);
                     union.or(possibilities[j]);
                     union.or(possibilities[k]);
                     if (union.cardinality() == 3) {
@@ -311,13 +415,22 @@ public class Solver {
                         int b = union.nextSetBit(a)+1;
                         int c = union.nextSetBit(b)+1;
                         //remove possibilities from other cells
-                        for (int n = 0; n < sudoku.getLength(); n++) {
+                        int cellsModified = 0;
+                        for (int n = 0; n < length; n++) {
                             Cell temp = s.getCell(n);
                             if (temp.getValue() == 0 && n != indexes[i] && n != indexes[j] && n != indexes[k]) {
-                                //increment change count only if possibilty(s) were set
-                                //System.out.println("naked triple reduction");
-                                changes += (temp.setPossibile(a, false) | temp.setPossibile(b, false) | temp.setPossibile(c, false)) ? 1 : 0;
+                                //increment cells modified count only if possibilty(s) were set
+                                //System.out.println("Reduction: naked triple");
+                                if (temp.setPossibile(a, false) | temp.setPossibile(b, false) | temp.setPossibile(c, false)) {
+                                    //System.out.println("Reduction: naked triple");
+                                    ++cellsModified;
+                                    setCellStrategy(temp, 4);
+                                }
                             }
+                        }
+                        //increment change count only if cells were modified
+                        if (cellsModified > 0) {
+                            ++changes;
                         }
                     }
                 }
@@ -329,29 +442,30 @@ public class Solver {
     
     private int findHiddenPairs() {
         int changes = 0;
-        for (int i = 0; i < sudoku.getLength(); ++i) {
+        for (int i = 0; i < length; ++i) {
             changes += setHiddenPairs(sudoku.getBox(i));
             changes += setHiddenPairs(sudoku.getRow(i));
             changes += setHiddenPairs(sudoku.getColumn(i));
         }
+        strategyCounts[5] += changes;
         return changes;
     }
     
     private int setHiddenPairs(SubSudoku s) {
         int changes = 0;
-        int[] pairs = new int[sudoku.getLength()];
+        int[] pairs = new int[length];
         //find the indexes of hidden pairs
-        for (int n = 1; n <= sudoku.getLength(); ++n) {
+        for (int n = 1; n <= length; ++n) {
             int count = 0;
             int ids = 0;
             OUTER:
-            for (int i = 0; i < sudoku.getLength(); ++i) {
+            for (int i = 0; i < length; ++i) {
                 if (s.getCell(i).containsPossibility(n)) {
                     ++count;
                     //encode pair cell indexes as single int
                     switch (count) {
                         case 1:
-                            ids += i*sudoku.getLength();
+                            ids += i*length;
                             break;
                         case 2:
                             ids += i;
@@ -368,29 +482,37 @@ public class Solver {
                 for (int j = i+1; j < pairs.length; j++) {
                     if (pairs[i] == pairs[j]) {
                         //hidden pair found
-                        int a = pairs[i] / sudoku.getLength();
-                        int b = pairs[i] % sudoku.getLength();
-                        //System.out.println("hidden pair reduction");
+                        int cellsModified = 0;
+                        Cell a = s.getCell(pairs[i] / length);
+                        Cell b = s.getCell(pairs[i] % length);                 
                         //remove other possibilities from cells a & b
-                        if (s.getCell(a).getPossibilityCount() > 2) {
-                            //increment change count only if pair was hidden
-                            changes++;
-                            for (int n = 1; n <= sudoku.getLength(); n++) {
+                        if (a.getPossibilityCount() > 2) {
+                            //increment cells modified count only if cell was hidden
+                            cellsModified++;
+                            for (int n = 1; n <= length; n++) {
                                 if (n != i+1 && n != j+1) {
                                     //set all other possibilities to false
-                                    s.getCell(a).setPossibile(n, false);
+                                    a.setPossibile(n, false);
                                 }
                             }
+                            //System.out.println("Reduction: hidden pair");
+                            setCellStrategy(a, 5);
                         }
-                        if (s.getCell(b).getPossibilityCount() > 2) {
-                            //increment change count only if pair was hidden
-                            changes++;
-                            for (int n = 1; n <= sudoku.getLength(); n++) {
+                        if (b.getPossibilityCount() > 2) {
+                            //increment cells modified count only if cell was hidden
+                            cellsModified++;
+                            for (int n = 1; n <= length; n++) {
                                 if (n != i+1 && n != j+1) {
                                     //set all other possibilities to false
-                                    s.getCell(b).setPossibile(n, false);
+                                    b.setPossibile(n, false);
                                 }
                             }
+                            //System.out.println("Reduction: hidden pair");
+                            setCellStrategy(b, 5);
+                        }
+                        //increment change count only if cells were modified
+                        if (cellsModified > 0) {                      
+                            ++changes;
                         }
                         break;
                     }
@@ -403,24 +525,25 @@ public class Solver {
     
     private int findHiddenTriples() {
         int changes = 0;
-        for (int i = 0; i < sudoku.getLength(); ++i) {
+        for (int i = 0; i < length; ++i) {
             changes += setHiddenTriples(sudoku.getBox(i));
             changes += setHiddenTriples(sudoku.getRow(i));
             changes += setHiddenTriples(sudoku.getColumn(i));
         }
+        strategyCounts[6] += changes;
         return changes;
     }
     
     private int setHiddenTriples(SubSudoku s) {
         int changes = 0;
         
-        BitSet indexes[] = new BitSet[sudoku.getLength()];
-        int[] counts = new int[sudoku.getLength()];
+        BitSet indexes[] = new BitSet[length];
+        int[] counts = new int[length];
         //find the the counts and index bitset of each number
-        for (int n = 1; n <= sudoku.getLength(); ++n) {
+        for (int n = 1; n <= length; ++n) {
             int count = 0;
-            indexes[n-1] = new BitSet(sudoku.getLength());
-            for (int i = 0; i < sudoku.getLength(); ++i) {
+            indexes[n-1] = new BitSet(length);
+            for (int i = 0; i < length; ++i) {
                 if (s.getCell(i).containsPossibility(n)) {
                     ++count;
                     //save the index to corresponding bitset
@@ -436,45 +559,63 @@ public class Solver {
         }
         
         //check if the union of all combinations of three numbers that appear 2-3 times forms a set of size 3 
-        for (int i = 0; i < sudoku.getLength()-2; ++i) {
+        for (int i = 0; i < length-2; ++i) {
             if (counts[i] < 2)
                 continue;
-            for (int j = i+1; j < sudoku.getLength()-1; ++j) {
+            for (int j = i+1; j < length-1; ++j) {
                 if (counts[j] < 2)
                     continue;
-                for (int k = j+1; k < sudoku.getLength(); ++k) {
+                for (int k = j+1; k < length; ++k) {
                     if (counts[k] < 2)
                         continue;
-                    BitSet union = indexes[i].get(0, sudoku.getLength());
+                    BitSet union = indexes[i].get(0, length);
                     union.or(indexes[j]);
                     union.or(indexes[k]);
                     if (union.cardinality() == 3) {
                         //hidden triple found
+                        int cellsModified = 0;
                         int a = union.nextSetBit(0);
                         int b = union.nextSetBit(a);
                         int c = union.nextSetBit(b);
                         //remove other possibilities from cells a, b, and c
-                        boolean aChanged = false;
-                        boolean bChanged = false;
-                        boolean cChanged = false;
-                        for (int n = 1; n <= sudoku.getLength(); n++) {
+                        int aChanged = 0;
+                        int bChanged = 0;
+                        int cChanged = 0;
+                        for (int n = 1; n <= length; n++) {
                             if (n != i+1 && n != j+1 && n != k+1) {
                                 //set all other possibilities to false
-                                //System.out.println("hidden triple reduction");
                                 if (s.getCell(a).setPossibile(n, false)) {
-                                    aChanged = true;
+                                    aChanged++;
                                 }
                                 if (s.getCell(b).setPossibile(n, false)) {
-                                    bChanged = true;
+                                    bChanged++;
                                 }
                                 if (s.getCell(c).setPossibile(n, false)) {
-                                    cChanged = true;
+                                    cChanged++;
                                 }
-                                changes += (aChanged ? 1 : 0) 
-                                        + (bChanged ? 1 : 0)
-                                        + (cChanged ? 1 : 0);
                             }
-                        }                        
+                        }
+                        //increment cells modified count only if the respective cells were modified
+                        if (aChanged > 0) {
+                            cellsModified++;
+                            //System.out.println("Reduction: hidden triple");
+                            setCellStrategy(s.getCell(a), 6);
+                        }
+                        if (bChanged > 0) {
+                            cellsModified++;
+                            //System.out.println("Reduction: hidden triple");
+                            setCellStrategy(s.getCell(b), 6);
+                        }
+                        if (cChanged > 0) {
+                            cellsModified++;
+                            //System.out.println("Reduction: hidden triple");
+                            setCellStrategy(s.getCell(c), 6);
+                        }
+                        
+                        //increment change count only if cells were modified
+                        if (cellsModified > 0) {                      
+                            ++changes;
+                        }
                     }
                 }
             }
@@ -485,23 +626,24 @@ public class Solver {
     
     private int intersectionRemoval() {
         int changes = 0;
-        for (int i = 0; i < sudoku.getLength(); ++i) {
+        for (int i = 0; i < length; ++i) {
             changes += pointingNumbers(sudoku.getBox(i));
             changes += boxLine(sudoku.getRow(i));
             changes += boxLine(sudoku.getColumn(i));
         }
+        strategyCounts[7] += changes;
         return changes;
     }
     
     private int pointingNumbers(SubSudoku s) {
         int changes = 0;
         //remove all possibilities of numbers in the rows/columns outside the intersections
-        for (int n = 1; n < sudoku.getLength(); ++n) {
+        for (int n = 1; n < length; ++n) {
             SubSudoku row = null;
             SubSudoku column = null;
             boolean rowPointer = false;
             boolean columnPointer = false;
-            for (int i = 0; i < sudoku.getLength(); ++i) {
+            for (int i = 0; i < length; ++i) {
                 Cell c = s.getCell(i);
                 if (c.containsPossibility(n)) {
                     //check if all possible n's are in a single row
@@ -521,21 +663,39 @@ public class Solver {
                 }
             }
             if (rowPointer) {
-                for (int i = 0; i < sudoku.getLength(); ++i) {
-                    if (row.getCell(i).getBox() != s) {
+                //numbers pointing to a row found
+                int cellsModified = 0;
+                for (int i = 0; i < length; ++i) {
+                    Cell c = row.getCell(i);
+                    if (c.getBox() != s) {
                         //remove possibilities of cells in the same row but not in the same box
-                        //System.out.println("intersection reduction");
-                        changes += row.getCell(i).setPossibile(n, false) ? 1 : 0;
+                        if (c.setPossibile(n, false)) {
+                            //System.out.println("Reduction: intersection");
+                            ++cellsModified;
+                            setCellStrategy(c, 7);
+                        }
                     }
+                }
+                if (cellsModified > 0) {                      
+                    ++changes;
                 }
             }
             if (columnPointer) {
-                for (int i = 0; i < sudoku.getLength(); ++i) {
-                    if (column.getCell(i).getBox() != s) {
-                        //remove possibilities of cells in the same row but not in the same box
-                        //System.out.println("intersection reduction");
-                        changes += column.getCell(i).setPossibile(n, false) ? 1 : 0;
+                //numbers pointing to a column found
+                int cellsModified = 0;
+                for (int i = 0; i < length; ++i) {
+                    Cell c = column.getCell(i);
+                    if (c.getBox() != s) {
+                        //remove possibilities of cells in the same column but not in the same box
+                        if (c.setPossibile(n, false)) {
+                            //System.out.println("Reduction: intersection");
+                            ++cellsModified;
+                            setCellStrategy(c, 7);
+                        }
                     }
+                }
+                if (cellsModified > 0) {                      
+                    ++changes;
                 }
             }
         }
@@ -545,28 +705,37 @@ public class Solver {
     private int boxLine(SubSudoku s) {
         int changes = 0;
         //remove all possibilities of numbers in the boxes outside the intersections
-        for (int n = 1; n < sudoku.getLength(); ++n) {
+        for (int n = 1; n < length; ++n) {
             SubSudoku box = null;
-            boolean boxPointer = false;
-            for (int i = 0; i < sudoku.getLength(); ++i) {
+            boolean boxLine = false;
+            for (int i = 0; i < length; ++i) {
                 Cell c = s.getCell(i);
                 if (c.containsPossibility(n)) {
                     //check if all possible n's are in a single box
                     if (box == null) {
                         box = c.getBox();
-                        boxPointer = true;
+                        boxLine = true;
                     } else if (box != c.getBox()) {
-                        boxPointer = false;
+                        boxLine = false;
                     }
                 }
             }
-            if (boxPointer) {
-                for (int i = 0; i < sudoku.getLength(); ++i) {
-                    if (box.getCell(i).getRow() != s && box.getCell(i).getColumn() != s) {
+            if (boxLine) {
+                //numbers exclusively intersecting a box found
+                int cellsModified = 0;
+                for (int i = 0; i < length; ++i) {
+                    Cell c = box.getCell(i);
+                    if (c.getRow() != s && c.getColumn() != s) {
                         //remove possibilities of cells in the same box but not in the same row/column
-                        //System.out.println("intersection reduction");
-                        changes += box.getCell(i).setPossibile(n, false) ? 1 : 0;
+                        if (c.setPossibile(n, false)) {
+                            //System.out.println("Reduction: intersection");
+                            ++cellsModified;
+                            setCellStrategy(c, 7);
+                        }
                     }
+                }
+                if (cellsModified > 0) {                      
+                    ++changes;
                 }
             }
         }
@@ -611,7 +780,7 @@ public class Solver {
     private void writeMatrix() {
         for (int i = 0; i < 9; ++i) {
             if (i % 3 == 0)
-                System.out.println(" -----------------------");
+                System.out.print(" -----------------------"+System.lineSeparator());
             for (int j = 0; j < 9; ++j) {
                 if (j % 3 == 0) System.out.print("| ");
                 System.out.print(sudoku.getCell(i, j).getValue() == 0 ? " " : 
@@ -619,9 +788,9 @@ public class Solver {
 
                 System.out.print(' ');
             }
-            System.out.println("|");
+            System.out.print("|"+System.lineSeparator());
         }
-        System.out.println(" -----------------------");
+        System.out.print(" -----------------------"+System.lineSeparator());
     }
     
     //for testing which update algorithm is faster
@@ -635,8 +804,8 @@ public class Solver {
     
     private int checkColumnsAndRows2(int version) {
         int changes = 0;
-        for (int i = 0; i < sudoku.getLength(); ++i) {
-            for (int j = 0; j < sudoku.getLength(); ++j) {
+        for (int i = 0; i < length; ++i) {
+            for (int j = 0; j < length; ++j) {
                 Cell c = sudoku.getCell(i, j);
                 if (c.getValue() != 0)
                     continue;
@@ -657,13 +826,13 @@ public class Solver {
     }
     
     private void setPossibleValues2(Cell c, int version) {
-        for (int i = 1; i <= sudoku.getLength(); ++i) {
+        for (int i = 1; i <= length; ++i) {
             c.setPossibile(i, true);
         }
         
         if (version == 1) {
-            search: for (int i = 1; i <= sudoku.getLength(); ++i) { 
-                for (int j = 0; j < sudoku.getLength(); ++j) {
+            search: for (int i = 1; i <= length; ++i) { 
+                for (int j = 0; j < length; ++j) {
                     if (c.getBox().getCell(j).getValue() == i) {
                         c.setPossibile(i, false);
                         continue search;
@@ -679,7 +848,7 @@ public class Solver {
                 }
             }
         } else if (version == 2) {
-            for (int i = 0; i < sudoku.getLength(); ++i) {
+            for (int i = 0; i < length; ++i) {
                 if (c.getBox().getCell(i).getValue() != 0) {
                     c.setPossibile(c.getBox().getCell(i).getValue(), false);
                 }
@@ -711,8 +880,8 @@ public class Solver {
     
     private int findNakedPairs2() {
         int changes = 0;
-        for (int i = 0; i < sudoku.getLength(); ++i) {
-            for (int j = 0; j < sudoku.getLength(); ++j) {
+        for (int i = 0; i < length; ++i) {
+            for (int j = 0; j < length; ++j) {
                 Cell c = sudoku.getCell(i, j);
                 if (c.getPossibilityCount() == 2) {
                     //cell contains a pair
@@ -736,15 +905,15 @@ public class Solver {
     
     private int setNakedPairs2(Cell c, SubSudoku s, int a, int b) {
         int changes = 0;
-        for (int i = 0; i < sudoku.getLength(); ++i) {
+        for (int i = 0; i < length; ++i) {
             Cell other = s.getCell(i);
             if (other.getPossibilityCount() == 2 && other.getId() != c.getId() && other.containsPossibility(a) && other.containsPossibility(b)) {
                 //if a pair is found, remove the pair from the other cells
-                for (int j = 0; j < sudoku.getLength(); j++) {
+                for (int j = 0; j < length; j++) {
                     Cell temp = s.getCell(j);
                     if (temp.getValue() == 0 && i != j && temp.getId() != c.getId()) {
                         //increment change count only if possibilty(s) were set
-                        //System.out.println("naked pair reduction");
+                        //System.out.println("Reduction: naked pair");
                         changes += (temp.setPossibile(a, false) | temp.setPossibile(b, false)) ? 1 : 0;
                     }
                 }

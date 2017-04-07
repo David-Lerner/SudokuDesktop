@@ -81,6 +81,43 @@ public class Sudoku {
             }
         }
     }
+    
+    /**
+     * Create a Sudoku that is a copy of another
+     * @param sudoku the sudoku you want copied
+     */
+    public Sudoku (Sudoku sudoku) {
+        length = sudoku.getLength();
+        cells = new Cell[length][length];
+        rows = new SubSudoku[length];
+        columns = new SubSudoku[length];
+        boxes = new SubSudoku[length];
+        for (int i = 0; i < length; i++) {
+            rows[i] = new SubSudoku(length);
+            columns[i] = new SubSudoku(length);
+            boxes[i] = new SubSudoku(length);
+        }
+        int base = (int)Math.sqrt(length);
+        for (int i = 0; i < length; i++) {
+            for (int j = 0; j < length; j++) {
+                SubSudoku row = rows[i];
+                SubSudoku column = columns[j];
+                SubSudoku box = boxes[(j/base+(i/base)*base)];
+                Cell oldCell = sudoku.getCell(i, j);
+                Cell newCell = oldCell.createCell(oldCell.getId(), length, oldCell.getValue(), row, column, box, oldCell.isGiven());
+                if (oldCell.getValue() == 0) {
+                    for (int n = 1; n <= length; n++) {
+                        if (oldCell.containsPossibility(n))
+                            newCell.setPossibile(n, true);
+                    }
+                }
+                cells[i][j] = newCell;
+                row.addcell(newCell);
+                column.addcell(newCell);
+                box.addcell(newCell);
+            }
+        }
+    }
 
     public int getLength() {
         return length;

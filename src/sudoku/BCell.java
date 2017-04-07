@@ -104,5 +104,5 @@ public class BCell implements Cell{
         return new BCell(id, length, value, row, column, box, given);
     }
 
-    
+
 }
