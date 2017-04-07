@@ -730,7 +730,7 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     public void test() {
         //change the test function to whatever appropriate functionality you are testing
-        test2();
+        test5();
     }
     
     //compares 2 different update implementations
@@ -827,6 +827,39 @@ public class FXMLDocumentController implements Initializable {
             s.solve2();
         time = System.currentTimeMillis() - start;
         System.out.printf("Time taken for findNakedPairs2(): %,14d%n", time);
+        System.out.println("End Test:");
+    }
+    
+    //tests occurrences of strategies
+    public void test5() {
+        ArrayList<Solver> solvers = new ArrayList<>();
+        for (int[][] puzzle : sudokus) {
+            solvers.add(new Solver(new Sudoku(puzzle)));
+        }
+        long start, time;
+        int[] strategyCounts = new int[Solver.STRATEGY_NUMBER];
+        int[] strategyByCellCounts = new int [Solver.STRATEGY_NUMBER];
+        int[] strategyUsed = new int [Solver.STRATEGY_NUMBER];
+        int correct = 0;
+        System.out.println("Starting Test:");
+        start = System.currentTimeMillis();
+        for (Solver s : solvers) {
+            if (s.solve()) {
+                correct++;
+                for (int i = 0; i < Solver.STRATEGY_NUMBER; i++) {
+                    strategyCounts[i] += s.getStrategyCount(i);
+                    strategyByCellCounts[i] += s.getStrategyCountByCell(i);
+                    strategyUsed[i] += s.isStrategyUsed(i) ? 1 : 0;
+                }
+            }
+        }
+        time = System.currentTimeMillis() - start;
+        System.out.printf("Solved and rated %d/%d puzzles in %,14d%n", correct, solvers.size(), time);
+        System.out.printf("%-21s %10s %10s %10s%n", "", "avg. count", "by cell", "used in");
+        for (int i = 0; i < Solver.STRATEGY_NUMBER; i++) {
+            System.out.printf("%-21s %10.3f %10.3f %10s%n", Solver.getStrategyName(i)+":", 
+                    (strategyCounts[i]+0.0)/correct, (strategyByCellCounts[i]+0.0)/correct, strategyUsed[i]+"/"+correct);
+        }
         System.out.println("End Test:");
     }
     

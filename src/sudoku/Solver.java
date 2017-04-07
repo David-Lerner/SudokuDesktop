@@ -65,9 +65,11 @@ public class Solver {
         return true; // no violations, so it's legal
     }
 
+    public static final int STRATEGY_NUMBER = 9;
     private Sudoku sudoku;
     private int length;
     private int remaining;
+    private int strategy;
     private int[] strategyCounts;
     private int[] cellStrategies;
     private Stack<Sudoku> sudokuStack;
@@ -80,7 +82,8 @@ public class Solver {
         length = s.getLength();
         remaining = length*length;
         //8 strategies + no strategy (given)
-        strategyCounts = new int[9];
+        strategy = 0;
+        strategyCounts = new int[STRATEGY_NUMBER];
         cellStrategies = new int[length*length];
         sudokuStack = new Stack<>();
         remainingStack = new Stack<>();
@@ -128,7 +131,7 @@ public class Solver {
     }
     
     public int getStrategyCountByCell(int index) {
-        int[] byCell = new int[9];
+        int[] byCell = new int[STRATEGY_NUMBER];
         for (int i = 0; i < cellStrategies.length; i++) {
             byCell[cellStrategies[i]]++;
         }
@@ -137,8 +140,14 @@ public class Solver {
         return 0;
     }
     
+    public boolean isStrategyUsed(int index) {
+        if (index < strategyCounts.length && index >= 0)
+            return (strategyCounts[index] > 0 || index == 0);
+        return false;
+    }
+    
     private void printStrategies() {  
-        for (int i = 0; i < 9; i++) {
+        for (int i = 0; i < STRATEGY_NUMBER; i++) {
             System.out.printf("%-21s %3d By Cell: %d%n", 
                     getStrategyName(i)+":", getStrategyCount(i), getStrategyCountByCell(i));
         }
@@ -150,31 +159,38 @@ public class Solver {
         initializeCells();
         int changed = 1;
         while (changed > 0) {
+            strategy = 1;
             if (update() < 0)
                 return false;
             if (remaining == 0) {
                 break;
             }
+            strategy++;
             changed = findHiddenSingles();
             //System.out.println("Hidden Singles: "+changed);
             if (changed > 0)
                 continue;
+            strategy++;
             changed = findNakedPairs();
             //System.out.println("Naked Pairs: "+changed);
             if (changed > 0)
                 continue;
+            strategy++;
             changed = findNakedTriples();
             //System.out.println("Naked Triples: "+changed);
             if (changed > 0)
                 continue;
+            strategy++;
             changed = findHiddenPairs();
             //System.out.println("Hidden Pairs: "+changed);
             if (changed > 0)
                 continue;
+            strategy++;
             changed = findHiddenTriples();
             //System.out.println("Hidden Triples: "+changed);
             if (changed > 0)
                 continue;
+            strategy++;
             changed = intersectionRemoval();
             //System.out.println("Intersection Reduction: "+changed);
         }
@@ -236,7 +252,7 @@ public class Solver {
             }
         }
         //System.out.println("Possible Values: "+changes);
-        strategyCounts[1] += changes;
+        strategyCounts[strategy] += changes;
         return solved;
     }
     
@@ -271,7 +287,7 @@ public class Solver {
             changes += setHiddenSingles(sudoku.getRow(i));
             changes += setHiddenSingles(sudoku.getColumn(i));
         }
-        strategyCounts[2] += changes;
+        strategyCounts[strategy] += changes;
         return changes;
     }
     
@@ -310,7 +326,7 @@ public class Solver {
             changes += setNakedPairs(sudoku.getRow(i));
             changes += setNakedPairs(sudoku.getColumn(i));
         }
-        strategyCounts[3] += changes;
+        strategyCounts[strategy] += changes;
         return changes;
     }
     
@@ -364,7 +380,7 @@ public class Solver {
             changes += setNakedTriples(sudoku.getRow(i));
             changes += setNakedTriples(sudoku.getColumn(i));
         }
-        strategyCounts[4] += changes;
+        strategyCounts[strategy] += changes;
         return changes;
     }
     
@@ -447,7 +463,7 @@ public class Solver {
             changes += setHiddenPairs(sudoku.getRow(i));
             changes += setHiddenPairs(sudoku.getColumn(i));
         }
-        strategyCounts[5] += changes;
+        strategyCounts[strategy] += changes;
         return changes;
     }
     
@@ -530,7 +546,7 @@ public class Solver {
             changes += setHiddenTriples(sudoku.getRow(i));
             changes += setHiddenTriples(sudoku.getColumn(i));
         }
-        strategyCounts[6] += changes;
+        strategyCounts[strategy] += changes;
         return changes;
     }
     
@@ -631,7 +647,7 @@ public class Solver {
             changes += boxLine(sudoku.getRow(i));
             changes += boxLine(sudoku.getColumn(i));
         }
-        strategyCounts[7] += changes;
+        strategyCounts[strategy] += changes;
         return changes;
     }
     
