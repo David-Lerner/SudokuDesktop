@@ -159,38 +159,31 @@ public class Solver {
         initializeCells();
         int changed = 1;
         while (changed > 0) {
-            strategy = 1;
             if (update() < 0)
                 return false;
             if (remaining == 0) {
                 break;
             }
-            strategy++;
             changed = findHiddenSingles();
             //System.out.println("Hidden Singles: "+changed);
             if (changed > 0)
                 continue;
-            strategy++;
             changed = findNakedPairs();
             //System.out.println("Naked Pairs: "+changed);
             if (changed > 0)
                 continue;
-            strategy++;
             changed = findNakedTriples();
             //System.out.println("Naked Triples: "+changed);
             if (changed > 0)
                 continue;
-            strategy++;
             changed = findHiddenPairs();
             //System.out.println("Hidden Pairs: "+changed);
             if (changed > 0)
                 continue;
-            strategy++;
             changed = findHiddenTriples();
             //System.out.println("Hidden Triples: "+changed);
             if (changed > 0)
                 continue;
-            strategy++;
             changed = intersectionRemoval();
             //System.out.println("Intersection Reduction: "+changed);
         }
@@ -221,6 +214,7 @@ public class Solver {
     
     private int update() {
         int solved = 1;
+        strategy = 1;
         while (solved > 0) {
             solved = findPossibleValues();
         }
@@ -287,7 +281,7 @@ public class Solver {
             changes += setHiddenSingles(sudoku.getRow(i));
             changes += setHiddenSingles(sudoku.getColumn(i));
         }
-        strategyCounts[strategy] += changes;
+        strategyCounts[++strategy] += changes;
         return changes;
     }
     
@@ -326,7 +320,7 @@ public class Solver {
             changes += setNakedPairs(sudoku.getRow(i));
             changes += setNakedPairs(sudoku.getColumn(i));
         }
-        strategyCounts[strategy] += changes;
+        strategyCounts[++strategy] += changes;
         return changes;
     }
     
@@ -380,7 +374,7 @@ public class Solver {
             changes += setNakedTriples(sudoku.getRow(i));
             changes += setNakedTriples(sudoku.getColumn(i));
         }
-        strategyCounts[strategy] += changes;
+        strategyCounts[++strategy] += changes;
         return changes;
     }
     
@@ -463,7 +457,7 @@ public class Solver {
             changes += setHiddenPairs(sudoku.getRow(i));
             changes += setHiddenPairs(sudoku.getColumn(i));
         }
-        strategyCounts[strategy] += changes;
+        strategyCounts[++strategy] += changes;
         return changes;
     }
     
@@ -546,7 +540,7 @@ public class Solver {
             changes += setHiddenTriples(sudoku.getRow(i));
             changes += setHiddenTriples(sudoku.getColumn(i));
         }
-        strategyCounts[strategy] += changes;
+        strategyCounts[++strategy] += changes;
         return changes;
     }
     
@@ -647,7 +641,7 @@ public class Solver {
             changes += boxLine(sudoku.getRow(i));
             changes += boxLine(sudoku.getColumn(i));
         }
-        strategyCounts[strategy] += changes;
+        strategyCounts[++strategy] += changes;
         return changes;
     }
     
