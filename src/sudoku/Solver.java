@@ -230,6 +230,7 @@ public class Solver {
         while (solved > 0) {
             solved = findPossibleValues();
         }
+        strategy++;
         return solved;
     }
     
@@ -280,7 +281,7 @@ public class Solver {
         if (c.getPossibilityCount() < preset) {
             //possibilities were removed
             //System.out.println("Reduction: possible value");
-            setCellStrategy(c, 1);
+            setCellStrategy(c, strategy);
             ++changes;
         }
         return changes;
@@ -293,7 +294,7 @@ public class Solver {
             changes += setHiddenSingles(sudoku.getRow(i));
             changes += setHiddenSingles(sudoku.getColumn(i));
         }
-        strategyCounts[++strategy] += changes;
+        strategyCounts[strategy++] += changes;
         return changes;
     }
     
@@ -319,7 +320,7 @@ public class Solver {
                 for (int i = 1; i <= length; ++i)
                     c.setPossibile(i, false);
                 c.setPossibile(n, true);
-                setCellStrategy(c, 2);
+                setCellStrategy(c, strategy);
             }
         }
         return changes;
@@ -332,7 +333,7 @@ public class Solver {
             changes += setNakedPairs(sudoku.getRow(i));
             changes += setNakedPairs(sudoku.getColumn(i));
         }
-        strategyCounts[++strategy] += changes;
+        strategyCounts[strategy++] += changes;
         return changes;
     }
     
@@ -364,7 +365,7 @@ public class Solver {
                             if (temp.setPossibile(a, false) | temp.setPossibile(b, false)) {
                                 //System.out.println("Reduction: naked pair");
                                 ++cellsModified;
-                                setCellStrategy(temp, 3);
+                                setCellStrategy(temp, strategy);
                             }
                         }
                     }
@@ -386,7 +387,7 @@ public class Solver {
             changes += setNakedTriples(sudoku.getRow(i));
             changes += setNakedTriples(sudoku.getColumn(i));
         }
-        strategyCounts[++strategy] += changes;
+        strategyCounts[strategy++] += changes;
         return changes;
     }
     
@@ -446,7 +447,7 @@ public class Solver {
                                 if (temp.setPossibile(a, false) | temp.setPossibile(b, false) | temp.setPossibile(c, false)) {
                                     //System.out.println("Reduction: naked triple");
                                     ++cellsModified;
-                                    setCellStrategy(temp, 4);
+                                    setCellStrategy(temp, strategy);
                                 }
                             }
                         }
@@ -469,7 +470,7 @@ public class Solver {
             changes += setHiddenPairs(sudoku.getRow(i));
             changes += setHiddenPairs(sudoku.getColumn(i));
         }
-        strategyCounts[++strategy] += changes;
+        strategyCounts[strategy++] += changes;
         return changes;
     }
     
@@ -511,26 +512,20 @@ public class Solver {
                         if (a.getPossibilityCount() > 2) {
                             //increment cells modified count only if cell was hidden
                             cellsModified++;
-                            for (int n = 1; n <= length; n++) {
-                                if (n != i+1 && n != j+1) {
-                                    //set all other possibilities to false
-                                    a.setPossibile(n, false);
-                                }
-                            }
+                            a.removePossibilities();
+                            a.setPossibile(i+1, true);
+                            a.setPossibile(j+1, true);
                             //System.out.println("Reduction: hidden pair");
-                            setCellStrategy(a, 5);
+                            setCellStrategy(a, strategy);
                         }
                         if (b.getPossibilityCount() > 2) {
                             //increment cells modified count only if cell was hidden
                             cellsModified++;
-                            for (int n = 1; n <= length; n++) {
-                                if (n != i+1 && n != j+1) {
-                                    //set all other possibilities to false
-                                    b.setPossibile(n, false);
-                                }
-                            }
+                            b.removePossibilities();
+                            b.setPossibile(i+1, true);
+                            b.setPossibile(j+1, true);
                             //System.out.println("Reduction: hidden pair");
-                            setCellStrategy(b, 5);
+                            setCellStrategy(b, strategy);
                         }
                         //increment change count only if cells were modified
                         if (cellsModified > 0) {                      
@@ -552,7 +547,7 @@ public class Solver {
             changes += setHiddenTriples(sudoku.getRow(i));
             changes += setHiddenTriples(sudoku.getColumn(i));
         }
-        strategyCounts[++strategy] += changes;
+        strategyCounts[strategy++] += changes;
         return changes;
     }
     
@@ -621,17 +616,17 @@ public class Solver {
                         if (aChanged > 0) {
                             cellsModified++;
                             //System.out.println("Reduction: hidden triple");
-                            setCellStrategy(s.getCell(a), 6);
+                            setCellStrategy(s.getCell(a), strategy);
                         }
                         if (bChanged > 0) {
                             cellsModified++;
                             //System.out.println("Reduction: hidden triple");
-                            setCellStrategy(s.getCell(b), 6);
+                            setCellStrategy(s.getCell(b), strategy);
                         }
                         if (cChanged > 0) {
                             cellsModified++;
                             //System.out.println("Reduction: hidden triple");
-                            setCellStrategy(s.getCell(c), 6);
+                            setCellStrategy(s.getCell(c), strategy);
                         }
                         
                         //increment change count only if cells were modified
@@ -653,7 +648,7 @@ public class Solver {
             changes += boxLine(sudoku.getRow(i));
             changes += boxLine(sudoku.getColumn(i));
         }
-        strategyCounts[++strategy] += changes;
+        strategyCounts[strategy++] += changes;
         return changes;
     }
     
@@ -694,7 +689,7 @@ public class Solver {
                         if (c.setPossibile(n, false)) {
                             //System.out.println("Reduction: intersection");
                             ++cellsModified;
-                            setCellStrategy(c, 7);
+                            setCellStrategy(c, strategy);
                         }
                     }
                 }
@@ -712,7 +707,7 @@ public class Solver {
                         if (c.setPossibile(n, false)) {
                             //System.out.println("Reduction: intersection");
                             ++cellsModified;
-                            setCellStrategy(c, 7);
+                            setCellStrategy(c, strategy);
                         }
                     }
                 }
@@ -752,7 +747,7 @@ public class Solver {
                         if (c.setPossibile(n, false)) {
                             //System.out.println("Reduction: intersection");
                             ++cellsModified;
-                            setCellStrategy(c, 7);
+                            setCellStrategy(c, strategy);
                         }
                     }
                 }
