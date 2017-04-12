@@ -100,6 +100,11 @@ public class BCell implements Cell{
     }
 
     @Override
+    public void removePossibilities() {
+        possibles = new BitSet(possibles.length());
+    }
+
+    @Override
     public Cell createCell(int id, int length, int value, SubSudoku row, SubSudoku column, SubSudoku box, boolean given) {
         return new BCell(id, length, value, row, column, box, given);
     }

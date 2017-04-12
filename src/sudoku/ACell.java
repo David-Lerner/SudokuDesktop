@@ -118,6 +118,12 @@ public class ACell implements Cell {
             possibilityCount++;
         possibles[number-1] = !possibles[number-1];
     }
+
+    @Override
+    public void removePossibilities() {
+        possibles = new boolean[possibles.length];
+        possibilityCount = 0;
+    }
     
     @Override
     public Cell createCell(int id, int length, int value, SubSudoku row, SubSudoku column, SubSudoku box, boolean given) {

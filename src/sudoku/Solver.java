@@ -1,6 +1,7 @@
 package sudoku;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Stack;
 import java.util.Collections;
@@ -90,6 +91,10 @@ public class Solver {
         strategyCountStack = new Stack<>();
         cellStrategyStack = new Stack<>();
     }
+
+    public Sudoku getSudoku() {
+        return sudoku;
+    }
     
     /*
     Strategy index:
@@ -154,9 +159,13 @@ public class Solver {
     }
    
     public boolean solve() {
+        initializeCells();
+        return recursiveSolve();
+    }
+    
+    private boolean recursiveSolve() {
         //System.out.println("Before:");
         //writeMatrix();
-        initializeCells();
         int changed = 1;
         while (changed > 0) {
             if (update() < 0)
@@ -188,10 +197,13 @@ public class Solver {
             //System.out.println("Intersection Reduction: "+changed);
         }
         
-        //printStrategies();
-        if (!checkValidity(Solver.solve(sudoku))) {
-            System.out.print("ERROR!"+System.lineSeparator());
+        if (remaining > 0) {
+            return bruteForce();
         }
+        //printStrategies();
+        /*if (!checkValidity(Solver.solve(sudoku))) {
+            System.out.print("ERROR!"+System.lineSeparator());
+        }*/
         //System.out.println("After:");
         //writeMatrix();
         
@@ -750,6 +762,58 @@ public class Solver {
             }
         }
         return changes;
+    }
+    
+    private boolean bruteForce() {
+        Cell c = getMin();
+        int iMin = c.getId()/length;
+        int jMin = c.getId()%length;
+        //try solving for evey possible value of the selected cell
+        for (int n = 1; n <= length; n++) {
+            if (c.containsPossibility(n)) {
+                //push old values onto stack
+                sudokuStack.push(sudoku);
+                remainingStack.push(remaining);
+                strategyCountStack.push(strategyCounts);
+                cellStrategyStack.push(cellStrategies);
+                //guess cell as n
+                sudoku = new Sudoku(sudoku);
+                remaining--;
+                strategyCounts = Arrays.copyOf(strategyCounts, strategyCounts.length);
+                cellStrategies = Arrays.copyOf(cellStrategies, cellStrategies.length);
+                sudoku.getCell(iMin, jMin).setValue(n);
+                sudoku.getCell(iMin, jMin).removePossibilities();
+                strategyCounts[8]++;
+                cellStrategies[c.getId()] = 8;
+                if (recursiveSolve()) {
+                    //recursive calls end here
+                    return true;
+                } else {
+                    //pop values from stack
+                    sudoku = sudokuStack.pop();
+                    remaining = remainingStack.pop();
+                    strategyCounts = strategyCountStack.pop();
+                    cellStrategies = cellStrategyStack.pop();
+                }
+            }
+        }
+        return false;
+    }
+    
+    public Cell getMin() {
+        //find cell with smallest number of possibilities
+        int min = length+1;
+        Cell minCell = null;
+        for (int i = 0; i < length; i++) {
+            for (int j = 0; j < length; j++) {
+                Cell c = sudoku.getCell(i, j);
+                if (c.getPossibilityCount() > 0 && c.getPossibilityCount() < min) {
+                    min = c.getPossibilityCount();
+                    minCell = c;
+                }
+            }
+        }
+        return minCell;
     }
     
     public static boolean checkValidity(Sudoku s) {
