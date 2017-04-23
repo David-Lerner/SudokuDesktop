@@ -66,7 +66,7 @@ public class Solver {
         return true; // no violations, so it's legal
     }
 
-    public static final int STRATEGY_NUMBER = 9;
+    public static final int STRATEGY_NUMBER = 10;
     private Sudoku sudoku;
     private int length;
     private int remaining;
@@ -114,7 +114,8 @@ public class Solver {
     }
     
     public static String getStrategyName(int index) {
-        String[] strategyNames = {"None", 
+        String[] strategyNames = {
+            "None", 
             "Possible Values",
             "Hidden Singles",
             "Naked Pairs",
@@ -122,6 +123,7 @@ public class Solver {
             "Hidden Pairs",
             "Hidden Triples",
             "Intersection Removal",
+            "X-Wing",
             "Brute Force"};
         if (index < strategyNames.length && index >= 0) {
             return strategyNames[index];
@@ -194,6 +196,10 @@ public class Solver {
             if (changed > 0)
                 continue;
             changed = intersectionRemoval();
+            //System.out.println("Intersection Reduction: "+changed);
+            if (changed > 0)
+                continue;
+            changed = findXWing();
             //System.out.println("Intersection Reduction: "+changed);
         }
         
@@ -759,6 +765,99 @@ public class Solver {
         return changes;
     }
     
+    private int findXWing() {
+        int changes = 0;
+        changes += setXWing("row");
+        changes += setXWing("column");
+        for (int i = 0; i < length; ++i) {
+            
+        }
+        strategyCounts[strategy++] += changes;
+        return changes;
+    }
+    
+    private int setXWing(String type) {
+        int changes = 0;
+        int[][] pairs = new int[length][length];
+        //find all pairs in puzzle
+        for (int i = 0; i < length; ++i) {
+            //find all rows/columns with pairs
+            SubSudoku s = sudoku.getColumn(i);
+            if (type.equals("row")) {
+                s = sudoku.getRow(i);
+            }
+            //find the indexes of hidden pairs
+            for (int n = 1; n <= length; ++n) {
+                int count = 0;
+                int ids = 0;
+                OUTER:
+                for (int j = 0; j < length; ++j) {
+                    if (s.getCell(j).containsPossibility(n)) {
+                        ++count;
+                        //encode pair cell indexes as single int
+                        switch (count) {
+                            case 1:
+                                ids += j*length;
+                                break;
+                            case 2:
+                                ids += j;
+                                break;
+                            default:
+                                break OUTER;
+                        }
+                    }
+                }
+                pairs[i][n-1] = (count == 2) ? ids : -1;
+            }
+        }
+        for (int n = 1; n <= length; ++n) {
+            for (int i = 0; i < length-1; ++i) {
+                if (pairs[i][n-1] < 0) {
+                    continue;
+                }
+                for (int j = i+1; j < length; ++j) {
+                    if (pairs[i][n-1] == pairs[j][n-1]) {
+                        //X-wing pair found
+                        int cellsModified = 0;
+                        //find intersecting rows/columns
+                        SubSudoku first = sudoku.getRow(pairs[i][n-1] / length);
+                        SubSudoku second = sudoku.getRow(pairs[i][n-1] % length);
+                        if (type.equals("row")) {
+                            first = sudoku.getColumn(pairs[i][n-1] / length);
+                            second = sudoku.getColumn(pairs[i][n-1] % length);
+                        }
+                        //eliminate from intersecting rows/columns
+                        for (int k = 0; k < length; ++k) {
+                            if (k != i && k != j) {
+                                Cell a = first.getCell(k);
+                                Cell b = second.getCell(k);
+                                //remove possibility of n in the first intersecting row/column
+                                if (a.setPossibile(n, false)) {
+                                    //System.out.println("Reduction: x-wing");
+                                    ++cellsModified;
+                                    setCellStrategy(a, strategy);
+                                }
+                                //remove possibility of n in the second intersecting row/column
+                                if (b.setPossibile(n, false)) {
+                                    //System.out.println("Reduction: x-wing");
+                                    ++cellsModified;
+                                    setCellStrategy(b, strategy);
+                                }
+                            }
+                        }
+                        //increment change count only if cells were modified
+                        if (cellsModified > 0) {                      
+                            ++changes;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        
+        return changes;
+    }
+    
     private boolean bruteForce() {
         Cell c = getMin();
         int iMin = c.getId()/length;
@@ -778,8 +877,8 @@ public class Solver {
                 cellStrategies = Arrays.copyOf(cellStrategies, cellStrategies.length);
                 sudoku.getCell(iMin, jMin).setValue(n);
                 sudoku.getCell(iMin, jMin).removePossibilities();
-                strategyCounts[8]++;
-                cellStrategies[c.getId()] = 8;
+                strategyCounts[STRATEGY_NUMBER-1]++;
+                cellStrategies[c.getId()] = STRATEGY_NUMBER-1;
                 if (recursiveSolve()) {
                     //recursive calls end here
                     return true;
