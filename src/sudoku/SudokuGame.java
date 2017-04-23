@@ -269,12 +269,18 @@ public class SudokuGame {
     }
     
     public void undo() {
+        if (undo.isEmpty()) {
+            return;
+        }
         ActionPair actionPair = undo.pop();
         actionPair.reverse.apply();
         redo.push(actionPair);
     }
     
     public void redo() {
+        if (redo.isEmpty()) {
+            return;
+        }
         ActionPair actionPair = redo.pop();
         actionPair.action.apply();
         undo.push(actionPair);
