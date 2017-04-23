@@ -65,6 +65,7 @@ public class SudokuSolver {
 
     public static final int STRATEGY_NUMBER = 10;
     private Sudoku sudoku;
+    private Sudoku original;
     private int length;
     private int remaining;
     private int strategy;
@@ -77,6 +78,7 @@ public class SudokuSolver {
     
     public SudokuSolver(Sudoku s) {
         sudoku = s;
+        original = s;
         length = s.getLength();
         remaining = length*length;
         //8 strategies + no strategy (given)
@@ -209,7 +211,7 @@ public class SudokuSolver {
         }*/
         //System.out.println("After:");
         //writeMatrix();
-        
+        updateOriginal();
         return checkValidity(sudoku);
     }
     
@@ -905,6 +907,19 @@ public class SudokuSolver {
             }
         }
         return minCell;
+    }
+    
+    public void updateOriginal() {
+        for (int i = 0; i < length; i++) {
+            for (int j = 0; j < length; j++) {
+                Cell c = sudoku.getCell(i, j);
+                Cell o = original.getCell(i, j);
+                o.setValue(c.getValue());
+                for (int n = 1; n <= length; n++) {
+                    o.setPossibile(n, c.containsPossibility(n));
+                }
+            }
+        }
     }
     
     public static boolean checkValidity(Sudoku s) {

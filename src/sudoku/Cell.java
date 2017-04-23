@@ -24,10 +24,6 @@ public interface Cell {
 
     boolean isGiven();
 
-    boolean isHighlighted();
-
-    void setHighlighted(boolean highlighted);
-
     boolean setPossibile(int number, boolean possible);
 
     void setValue(int value);

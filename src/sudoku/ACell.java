@@ -15,7 +15,6 @@ public class ACell implements Cell {
     private SubSudoku row;
     private SubSudoku column;
     private SubSudoku box;
-    private boolean highlighted;
     private boolean given;
 
     public ACell() {}; //as factory
@@ -34,7 +33,6 @@ public class ACell implements Cell {
         this.row = row;
         this.column = column;
         this.box = box;
-        highlighted = false;
         this.given = given;
     }
 
@@ -66,16 +64,6 @@ public class ACell implements Cell {
     @Override
     public int getValue() {
         return value;
-    }
-
-    @Override
-    public boolean isHighlighted() {
-        return highlighted;
-    }
-
-    @Override
-    public void setHighlighted(boolean highlighted) {
-        this.highlighted = highlighted;
     }
     
     @Override

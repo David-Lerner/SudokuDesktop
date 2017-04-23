@@ -14,7 +14,6 @@ public class BCell implements Cell{
     private SubSudoku row;
     private SubSudoku column;
     private SubSudoku box;
-    private boolean highlighted;
     private boolean given;
     
     public BCell() {}; //as factory
@@ -32,7 +31,6 @@ public class BCell implements Cell{
         this.row = row;
         this.column = column;
         this.box = box;
-        highlighted = false;
         this.given = given;
     }
 
@@ -58,14 +56,6 @@ public class BCell implements Cell{
 
     public int getValue() {
         return value;
-    }
-
-    public boolean isHighlighted() {
-        return highlighted;
-    }
-
-    public void setHighlighted(boolean highlighted) {
-        this.highlighted = highlighted;
     }
     
     public boolean isGiven() {
