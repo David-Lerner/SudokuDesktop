@@ -14,6 +14,9 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.Timer;
+import java.util.TimerTask;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -61,6 +64,9 @@ public class FXMLDocumentController implements Initializable {
     
     @FXML
     private GridPane buttonGrid;
+    
+    @FXML
+    private Label elapsed;
     
     public static final int BASE = 3;
     private static final int CELL_SIZE = 40;
@@ -127,6 +133,7 @@ public class FXMLDocumentController implements Initializable {
       model[8][8] = 6 ;
 
       sudokuGame = new SudokuGame(new Sudoku(model));
+      sudokuGame.begin();
         /*int sample[][] = {{ 3, 0, 6, 5, 0, 8, 4, 0, 0 }, //
                         { 5, 2, 0, 0, 0, 0, 0, 0, 0 }, //
                         { 0, 8, 7, 0, 0, 0, 0, 3, 1 }, //
@@ -244,6 +251,19 @@ public class FXMLDocumentController implements Initializable {
             ht.resolve(currentSelected);
         });
         buttonGrid.add(ht, 9, 1);
+        
+        //add timer
+        Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                Platform.runLater(new Runnable() {
+                    public void run() {
+                        elapsed.setText(sudokuGame.getElapsedFormatted());
+                    }
+                });
+             }
+        }, 0, 1000);
     }
     
     private class CellTile extends StackPane implements Selectable{
@@ -828,5 +848,6 @@ public class FXMLDocumentController implements Initializable {
     private void reset(Sudoku newSudoku) {
         sudokuGame = new SudokuGame(newSudoku);
         refresh();
+        sudokuGame.begin();
     }
 }
