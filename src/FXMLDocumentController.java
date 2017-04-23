@@ -44,7 +44,7 @@ import sudoku.BCell;
 import sudoku.Sudoku;
 import sudoku.Cell;
 import sudoku.Selectable;
-import sudoku.Solver;
+import sudoku.SudokuSolver;
 
 /**
  *
@@ -712,13 +712,13 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     public void solveGame() {
         undoCurrentSelected();
-        Solver s = new Solver(new Sudoku(sudoku));
+        SudokuSolver s = new SudokuSolver(new Sudoku(sudoku));
         if (s.solve()) {
             reset(s.getSudoku());
         } else {
             System.out.println("No solution");
         }
-        /*Sudoku solution = Solver.solve(sudoku);
+        /*Sudoku solution = SudokuSolver.solve(sudoku);
         if (solution != null) {
             reset(solution);
         } else {
@@ -735,21 +735,21 @@ public class FXMLDocumentController implements Initializable {
     
     //compares 2 different update implementations
     public void test1() {
-        ArrayList<Solver> s1 = new ArrayList<>();
-        ArrayList<Solver> s2 = new ArrayList<>();
+        ArrayList<SudokuSolver> s1 = new ArrayList<>();
+        ArrayList<SudokuSolver> s2 = new ArrayList<>();
         for (int[][] puzzle : sudokus) {
-            s1.add(new Solver(new Sudoku(puzzle)));
-            s2.add(new Solver(new Sudoku(puzzle)));
+            s1.add(new SudokuSolver(new Sudoku(puzzle)));
+            s2.add(new SudokuSolver(new Sudoku(puzzle)));
         }
         long start, time;
         System.out.println("Starting Test:");
         start = System.currentTimeMillis();
-        for (Solver s : s1)
+        for (SudokuSolver s : s1)
             s.testUpdate(1);
         time = System.currentTimeMillis() - start;
         System.out.printf("Time taken for s1: %,14d%n", time);
         start = System.currentTimeMillis();
-        for (Solver s : s2)
+        for (SudokuSolver s : s2)
             s.testUpdate(2);
         time = System.currentTimeMillis() - start;
         System.out.printf("Time taken for s2: %,14d%n", time);
@@ -759,24 +759,24 @@ public class FXMLDocumentController implements Initializable {
     //tests validity and timing of solvers
     public void test2() {
         ArrayList<Sudoku> s1 = new ArrayList<>();
-        ArrayList<Solver> s2 = new ArrayList<>();
+        ArrayList<SudokuSolver> s2 = new ArrayList<>();
         for (int[][] puzzle : sudokus) {
             s1.add(new Sudoku(puzzle));
-            s2.add(new Solver(new Sudoku(puzzle)));
+            s2.add(new SudokuSolver(new Sudoku(puzzle)));
         }
         long start, time;
         System.out.println("Starting Test:");
         int correct = 0;
         start = System.currentTimeMillis();
         for (Sudoku s : s1) {
-            if (Solver.checkValidity(Solver.solve(s)))
+            if (SudokuSolver.checkValidity(SudokuSolver.solve(s)))
                 correct++;
         }
         time = System.currentTimeMillis() - start;
         System.out.printf("Advanced solver: %d/%d correctly in %,14d%n", correct, s1.size(), time);
         correct = 0;
         start = System.currentTimeMillis();
-        for (Solver s : s2)
+        for (SudokuSolver s : s2)
             if (s.solve())
                 correct++;
         time = System.currentTimeMillis() - start;
@@ -786,21 +786,21 @@ public class FXMLDocumentController implements Initializable {
     
     //compares 2 different cell implementations
     public void test3() {
-        ArrayList<Solver> s1 = new ArrayList<>();
-        ArrayList<Solver> s2 = new ArrayList<>();
+        ArrayList<SudokuSolver> s1 = new ArrayList<>();
+        ArrayList<SudokuSolver> s2 = new ArrayList<>();
         for (int[][] puzzle : sudokus) {
-            s1.add(new Solver(new Sudoku(puzzle, new ACell())));
-            s2.add(new Solver(new Sudoku(puzzle, new BCell())));
+            s1.add(new SudokuSolver(new Sudoku(puzzle, new ACell())));
+            s2.add(new SudokuSolver(new Sudoku(puzzle, new BCell())));
         }
         long start, time;
         System.out.println("Starting Test:");
         start = System.currentTimeMillis();
-        for (Solver s : s1)
+        for (SudokuSolver s : s1)
             s.solve();
         time = System.currentTimeMillis() - start;
         System.out.printf("Time taken for ACell Implementation: %,14d%n", time);
         start = System.currentTimeMillis();
-        for (Solver s : s2)
+        for (SudokuSolver s : s2)
             s.solve();
         time = System.currentTimeMillis() - start;
         System.out.printf("Time taken for BCell Implementation: %,14d%n", time);
@@ -809,21 +809,21 @@ public class FXMLDocumentController implements Initializable {
     
     //compares 2 different naked pair implementations
     public void test4() {
-        ArrayList<Solver> s1 = new ArrayList<>();
-        ArrayList<Solver> s2 = new ArrayList<>();
+        ArrayList<SudokuSolver> s1 = new ArrayList<>();
+        ArrayList<SudokuSolver> s2 = new ArrayList<>();
         for (int[][] puzzle : sudokus) {
-            s1.add(new Solver(new Sudoku(puzzle)));
-            s2.add(new Solver(new Sudoku(puzzle)));
+            s1.add(new SudokuSolver(new Sudoku(puzzle)));
+            s2.add(new SudokuSolver(new Sudoku(puzzle)));
         }
         long start, time;
         System.out.println("Starting Test:");
         start = System.currentTimeMillis();
-        for (Solver s : s1)
+        for (SudokuSolver s : s1)
             s.solve();
         time = System.currentTimeMillis() - start;
         System.out.printf("Time taken for findNakedPairs(): %,14d%n", time);
         start = System.currentTimeMillis();
-        for (Solver s : s2)
+        for (SudokuSolver s : s2)
             s.solve2();
         time = System.currentTimeMillis() - start;
         System.out.printf("Time taken for findNakedPairs2(): %,14d%n", time);
@@ -832,21 +832,21 @@ public class FXMLDocumentController implements Initializable {
     
     //tests occurrences of strategies
     public void test5() {
-        ArrayList<Solver> solvers = new ArrayList<>();
+        ArrayList<SudokuSolver> solvers = new ArrayList<>();
         for (int[][] puzzle : sudokus) {
-            solvers.add(new Solver(new Sudoku(puzzle)));
+            solvers.add(new SudokuSolver(new Sudoku(puzzle)));
         }
         long start, time;
-        int[] strategyCounts = new int[Solver.STRATEGY_NUMBER];
-        int[] strategyByCellCounts = new int [Solver.STRATEGY_NUMBER];
-        int[] strategyUsed = new int [Solver.STRATEGY_NUMBER];
+        int[] strategyCounts = new int[SudokuSolver.STRATEGY_NUMBER];
+        int[] strategyByCellCounts = new int [SudokuSolver.STRATEGY_NUMBER];
+        int[] strategyUsed = new int [SudokuSolver.STRATEGY_NUMBER];
         int correct = 0;
         System.out.println("Starting Test:");
         start = System.currentTimeMillis();
-        for (Solver s : solvers) {
+        for (SudokuSolver s : solvers) {
             if (s.solve()) {
                 correct++;
-                for (int i = 0; i < Solver.STRATEGY_NUMBER; i++) {
+                for (int i = 0; i < SudokuSolver.STRATEGY_NUMBER; i++) {
                     strategyCounts[i] += s.getStrategyCount(i);
                     strategyByCellCounts[i] += s.getStrategyCountByCell(i);
                     strategyUsed[i] += s.isStrategyUsed(i) ? 1 : 0;
@@ -856,8 +856,8 @@ public class FXMLDocumentController implements Initializable {
         time = System.currentTimeMillis() - start;
         System.out.printf("Solved and rated %d/%d puzzles in %,14d%n", correct, solvers.size(), time);
         System.out.printf("%-21s %10s %10s %10s%n", "", "avg. count", "by cell", "used in");
-        for (int i = 0; i < Solver.STRATEGY_NUMBER; i++) {
-            System.out.printf("%-21s %10.3f %10.3f %10s%n", Solver.getStrategyName(i)+":", 
+        for (int i = 0; i < SudokuSolver.STRATEGY_NUMBER; i++) {
+            System.out.printf("%-21s %10.3f %10.3f %10s%n", SudokuSolver.getStrategyName(i)+":", 
                     (strategyCounts[i]+0.0)/correct, (strategyByCellCounts[i]+0.0)/correct, strategyUsed[i]+"/"+correct);
         }
         System.out.println("End Test:");

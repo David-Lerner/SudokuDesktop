@@ -1,17 +1,14 @@
 package sudoku;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Stack;
-import java.util.Collections;
-import java.util.List;
 
 /**
  *
  * @author David
  */
-public class Solver {
+public class SudokuSolver {
     
     public static Sudoku solve(Sudoku s) {
         int length = s.getLength();
@@ -78,7 +75,7 @@ public class Solver {
     private Stack<int[]> strategyCountStack;
     private Stack<int[]> cellStrategyStack;
     
-    public Solver(Sudoku s) {
+    public SudokuSolver(Sudoku s) {
         sudoku = s;
         length = s.getLength();
         remaining = length*length;
@@ -207,7 +204,7 @@ public class Solver {
             return bruteForce();
         }
         //printStrategies();
-        /*if (!checkValidity(Solver.solve(sudoku))) {
+        /*if (!checkValidity(SudokuSolver.solve(sudoku))) {
             System.out.print("ERROR!"+System.lineSeparator());
         }*/
         //System.out.println("After:");
