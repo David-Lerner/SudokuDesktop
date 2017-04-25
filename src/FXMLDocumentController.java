@@ -88,13 +88,13 @@ public class FXMLDocumentController implements Initializable {
     public static final int LENGTH = BASE*BASE;
     private static final int BORDER_SIZE = 1;
 
-    //private Sudoku sudoku;
     private SudokuGame sudokuGame;
     private SudokuGenerator sudokuGenerator;
     private CellTile[][] cellGrid;
     private Selectable currentSelected;
     private GridPane[] subGrids;
     private boolean clicked = false;
+    private boolean showScore = false;
     
     @Override
     public void initialize(URL url, ResourceBundle rb) {
@@ -245,8 +245,18 @@ public class FXMLDocumentController implements Initializable {
             @Override
             public void run() {
                 Platform.runLater(new Runnable() {
+                    @Override
                     public void run() {
                         elapsed.setText(sudokuGame.getElapsedFormatted());
+                        if (sudokuGame.getStatus().equals(SudokuGame.COMPLETED) && !showScore) {
+                            showScore = true;
+                            Alert alert = new Alert(AlertType.INFORMATION);
+                            alert.setTitle("Your score");
+                            alert.setHeaderText("Your score");
+                            alert.setContentText(sudokuGame.getScore()+" points");
+
+                            alert.showAndWait();
+                        }
                     }
                 });
              }
@@ -256,6 +266,7 @@ public class FXMLDocumentController implements Initializable {
     private void resetLabels() {
         name.setText(sudokuGame.getName());
         difficulty.setText(sudokuGame.getDifficulty());
+        showScore = false;
     }
     
     private class CellTile extends StackPane implements Selectable{
