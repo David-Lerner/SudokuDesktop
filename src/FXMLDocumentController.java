@@ -6,12 +6,14 @@
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.Timer;
@@ -41,6 +43,8 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
+import javafx.stage.FileChooser;
+import javafx.stage.FileChooser.ExtensionFilter;
 import javax.swing.JFileChooser;
 import sudoku.ACell;
 import sudoku.BCell;
@@ -48,6 +52,7 @@ import sudoku.Sudoku;
 import sudoku.Cell;
 import sudoku.Selectable;
 import sudoku.SudokuGame;
+import sudoku.SudokuGenerator;
 import sudoku.SudokuSolver;
 
 /**
@@ -72,26 +77,18 @@ public class FXMLDocumentController implements Initializable {
     private static final int CELL_SIZE = 40;
     public static final int LENGTH = BASE*BASE;
     private static final int BORDER_SIZE = 1;
-    private static final String DEFAULT_GAME = "puzzler.txt";
 
     //private Sudoku sudoku;
     private SudokuGame sudokuGame;
+    private SudokuGenerator sudokuGenerator;
     private CellTile[][] cellGrid;
     private Selectable currentSelected;
     private GridPane[] subGrids;
     private boolean clicked = false;
     
-    private int sudokuNumber = 0;
-    private ArrayList<int[][]> sudokus = new ArrayList<>();
-    
     @Override
     public void initialize(URL url, ResourceBundle rb) {
         int[][] model = new int[9][9] ;
-
-      // Clear all cells
-      for( int row = 0; row < 9; row++ )
-         for( int col = 0; col < 9; col++ )
-            model[row][col] = 0 ;
 
       // Create the initial situation
       
@@ -132,6 +129,7 @@ public class FXMLDocumentController implements Initializable {
       model[8][4] = 4 ;
       model[8][8] = 6 ;
 
+      sudokuGenerator = new SudokuGenerator();
       sudokuGame = new SudokuGame(new Sudoku(model));
       sudokuGame.begin();
         /*int sample[][] = {{ 3, 0, 6, 5, 0, 8, 4, 0, 0 }, //
@@ -161,37 +159,14 @@ public class FXMLDocumentController implements Initializable {
                     grid[i][j] = Character.getNumericValue(initialBoard[i][j]);
                 }
             }
-            sudoku = new Sudoku(grid);
+            sudokuGame = new SudokuGame(new Sudoku(grid));
+            refresh();
+            sudokuGame.begin();
         } catch(FileNotFoundException ex) {
             System.out.println("Unable to open file '" + DEFAULT_GAME + "'");                
         } catch(IOException ex) {
             System.out.println("Error reading file '" + DEFAULT_GAME + "'");                   
         }*/
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(DEFAULT_GAME));
-            String line;  
-            while((line = br.readLine()) != null){
-                if (line.contains("G")) {
-                    char[][] initialBoard = new char[9][9];
-                    for (int i = 0; i < 9; i++) {
-                        line = br.readLine();
-                        initialBoard[i] = line.toCharArray();
-                    }
-                    int[][] grid = new int[9][9];
-                    for (int i = 0; i < 9; i++) {
-                        for (int j = 0; j < 9; j++) {
-                            grid[i][j] = Character.getNumericValue(initialBoard[i][j]);
-                        }
-                    }
-                    sudokus.add(grid);
-                }
-            }
-            br.close();
-        } catch(FileNotFoundException ex) {
-            System.out.println("Unable to open file '" + DEFAULT_GAME + "'");                
-        } catch(IOException ex) {
-            System.out.println("Error reading file '" + DEFAULT_GAME + "'");                   
-        }
         sudokuScene.setOnMouseClicked((MouseEvent event) -> {
             undoCurrentSelected();
         });
@@ -253,7 +228,7 @@ public class FXMLDocumentController implements Initializable {
         buttonGrid.add(ht, 9, 1);
         
         //add timer
-        Timer timer = new Timer();
+        Timer timer = new Timer(true);
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
@@ -611,8 +586,10 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     public void newGame() {
         undoCurrentSelected();
-        if (sudokuNumber < sudokus.size()) {
-            sudokuGame = new SudokuGame(new Sudoku(sudokus.get(sudokuNumber++)));
+        Sudoku sudoku = sudokuGenerator.getSudoku(SudokuGenerator.RANDOM);
+        if (sudoku != null) {
+            sudokuGame = new SudokuGame(sudoku);
+            sudokuGame.setDifficulty(sudokuGenerator.RANDOM);
             refresh();
             sudokuGame.begin();
         }
@@ -621,54 +598,47 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     public void loadGame() {
         undoCurrentSelected();
-        SudokuGame newGame = sudokuGame;
-        String filename = null;
-        JFileChooser chooser = new JFileChooser();
-        if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-            filename = chooser.getSelectedFile().getPath();
-            FileModel fileModel = new FileModel(filename);
+        File recordsDir = new File(System.getProperty("user.home"), "CompleteSudoku");
+        if (! recordsDir.exists()) {
+            recordsDir.mkdirs();
+        }
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setInitialDirectory(recordsDir);
+        fileChooser.setTitle("Select Sudoku game");
+        fileChooser.getExtensionFilters().addAll(new ExtensionFilter("JSON Files", "*.json"));
+        File file = fileChooser.showOpenDialog(null);
+        if (file != null) {
+            FileModel fileModel = new FileModel(file.getPath());
             sudokuGame = fileModel.loadGame(null);
             refresh();
             sudokuGame.start();
         }
-         
-        /*try {
-            BufferedReader br = new BufferedReader(new FileReader(DEFAULT_GAME));
-            String line = br.readLine();  
-                if (line.contains("G")) {
-                    char[][] initialBoard = new char[9][9];
-                    for (int i = 0; i < 9; i++) {
-                        line = br.readLine();
-                        initialBoard[i] = line.toCharArray();
-                    }
-                    int[][] grid = new int[9][9];
-                    for (int i = 0; i < 9; i++) {
-                        for (int j = 0; j < 9; j++) {
-                            grid[i][j] = Character.getNumericValue(initialBoard[i][j]);
-                        }
-                    }
-                    sudokuGame = new SudokuGame(new Sudoku(grid));
-                    refresh();
-                    sudokuGame.begin();
-                }
-            br.close();
-        } catch(FileNotFoundException ex) {
-            System.out.println("Unable to open file '" + DEFAULT_GAME + "'");                
-        } catch(IOException ex) {
-            System.out.println("Error reading file '" + DEFAULT_GAME + "'");                   
-        }*/
         
     }
     
     @FXML
     public void saveGame() {
         undoCurrentSelected();       
-        TextInputDialog dialog = new TextInputDialog(sudokuGame.getName());
+        /*TextInputDialog dialog = new TextInputDialog(sudokuGame.getName());
         dialog.setTitle("Save a Sudoku puzzle");
-        dialog.setContentText("Please enter a name:");
+        dialog.setContentText("Please enter a name:");       
         Optional<String> result = dialog.showAndWait();
         if (result.isPresent()){
             FileModel fileModel = new FileModel(result.get());
+            fileModel.saveGame(sudokuGame, null);
+        }*/
+        File recordsDir = new File(System.getProperty("user.home"), "CompleteSudoku");
+        if (! recordsDir.exists()) {
+            recordsDir.mkdirs();
+        }
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setInitialDirectory(recordsDir);
+        fileChooser.setTitle("Select Sudoku game");
+        fileChooser.setInitialFileName(sudokuGame.getName());
+        fileChooser.getExtensionFilters().addAll(new ExtensionFilter("JSON Files", "*.json"));
+        File file = fileChooser.showSaveDialog(null);
+        if (file != null) {
+            FileModel fileModel = new FileModel(file.getPath());
             fileModel.saveGame(sudokuGame, null);
         }
                
@@ -709,6 +679,7 @@ public class FXMLDocumentController implements Initializable {
     
     //compares 2 different update implementations
     public void test1() {
+        List<int[][]> sudokus = sudokuGenerator.getTestSudokus();
         ArrayList<SudokuSolver> s1 = new ArrayList<>();
         ArrayList<SudokuSolver> s2 = new ArrayList<>();
         for (int[][] puzzle : sudokus) {
@@ -732,6 +703,7 @@ public class FXMLDocumentController implements Initializable {
     
     //tests validity and timing of solvers
     public void test2() {
+        List<int[][]> sudokus = sudokuGenerator.getTestSudokus();
         ArrayList<Sudoku> s1 = new ArrayList<>();
         ArrayList<SudokuSolver> s2 = new ArrayList<>();
         for (int[][] puzzle : sudokus) {
@@ -760,6 +732,7 @@ public class FXMLDocumentController implements Initializable {
     
     //compares 2 different cell implementations
     public void test3() {
+        List<int[][]> sudokus = sudokuGenerator.getTestSudokus();
         ArrayList<SudokuSolver> s1 = new ArrayList<>();
         ArrayList<SudokuSolver> s2 = new ArrayList<>();
         for (int[][] puzzle : sudokus) {
@@ -783,6 +756,7 @@ public class FXMLDocumentController implements Initializable {
     
     //compares 2 different naked pair implementations
     public void test4() {
+        List<int[][]> sudokus = sudokuGenerator.getTestSudokus();
         ArrayList<SudokuSolver> s1 = new ArrayList<>();
         ArrayList<SudokuSolver> s2 = new ArrayList<>();
         for (int[][] puzzle : sudokus) {
@@ -806,6 +780,7 @@ public class FXMLDocumentController implements Initializable {
     
     //tests occurrences of strategies
     public void test5() {
+        List<int[][]> sudokus = sudokuGenerator.getTestSudokus();
         ArrayList<SudokuSolver> solvers = new ArrayList<>();
         for (int[][] puzzle : sudokus) {
             solvers.add(new SudokuSolver(new Sudoku(puzzle)));

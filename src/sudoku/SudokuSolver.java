@@ -962,7 +962,7 @@ public class SudokuSolver {
     }
     
     public String getDifficulty() {
-        return "Medium";
+        return "Medium"; //difficulty class
     }
     
     private void writeMatrix() {

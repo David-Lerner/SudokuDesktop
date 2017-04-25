@@ -25,14 +25,14 @@ public class SudokuGame {
     
     private long currentTime;
     private long elapsed;
-    
-    private int length;
-    private boolean paused;
-    
+        
     private Sudoku sudoku;
     private boolean[][] highlighted;
     private Deque<ActionPair> undo;
     private Deque<ActionPair> redo;
+    
+    private int length;
+    private boolean paused;
 
     /**
      * Creates a Sudoku game from given information
@@ -74,6 +74,8 @@ public class SudokuGame {
         this.undo = new ArrayDeque<>();
         this.redo = new ArrayDeque<>();
         this.elapsed = 0;
+        this.name = "New Sudoku";
+        this.difficulty = "None";
         this.status = NEW;
         this.score = 0;
         this.answers = new boolean[length*length];
@@ -480,12 +482,13 @@ public class SudokuGame {
     }
     
     public void end() {
-        if (status.equals(COMPLETED)) {
-            return;
+        if (!status.equals(COMPLETED)) {
+            stop();
+            undo.clear();
+            redo.clear();
+            status = COMPLETED;
+            score = calculateScore();
         }
-        stop();
-        status = COMPLETED;
-        score = calculateScore();
     }
     
     public void start() {
