@@ -23,6 +23,8 @@ public interface Cell {
     int getValue();
 
     boolean isGiven();
+    
+    void setGiven(boolean given);
 
     boolean setPossibile(int number, boolean possible);
 

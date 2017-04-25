@@ -20,7 +20,7 @@ public class Sudoku {
     }
 
     /**
-     * Create a new Sudoku with a given base
+     * Create a new empty Sudoku with a given base
      * @param base the base the of the Sudoku
      */
     public Sudoku(int base) {
@@ -115,6 +115,45 @@ public class Sudoku {
                 row.addcell(newCell);
                 column.addcell(newCell);
                 box.addcell(newCell);
+            }
+        }
+    }
+    
+    /**
+     * Create a Sudoku from a 3 data arrays
+     * @param value the values of the cells
+     * @param given whether the cells are given
+     * @param possible the possibilities of the cells
+     */
+    public Sudoku (int[] value, boolean[] given, boolean[][] possible) {
+        length = (int)Math.sqrt(value.length);
+        cells = new Cell[length][length];
+        rows = new SubSudoku[length];
+        columns = new SubSudoku[length];
+        boxes = new SubSudoku[length];
+        for (int i = 0; i < length; i++) {
+            rows[i] = new SubSudoku(length);
+            columns[i] = new SubSudoku(length);
+            boxes[i] = new SubSudoku(length);
+        }
+        int base = (int)Math.sqrt(length);
+        for (int i = 0; i < length; i++) {
+            for (int j = 0; j < length; j++) {
+                SubSudoku row = rows[i];
+                SubSudoku column = columns[j];
+                SubSudoku box = boxes[(j/base+(i/base)*base)];
+                int id = j+i*length;
+                Cell cell = new ACell(id, length, value[id], row, column, box, given[id]);
+                if (cell.getValue() == 0) {
+                    for (int n = 1; n <= length; n++) {
+                        if (possible[id][n-1])
+                            cell.setPossibile(n, true);
+                    }
+                }
+                cells[i][j] = cell;
+                row.addcell(cell);
+                column.addcell(cell);
+                box.addcell(cell);
             }
         }
     }

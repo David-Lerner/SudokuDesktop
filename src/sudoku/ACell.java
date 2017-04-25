@@ -72,6 +72,11 @@ public class ACell implements Cell {
     }
 
     @Override
+    public void setGiven(boolean given) {
+        this.given = given;
+    }
+
+    @Override
     public int getPossibilityCount() {
         return possibilityCount;
     }

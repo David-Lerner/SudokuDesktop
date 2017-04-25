@@ -164,7 +164,7 @@ public class SudokuSolver {
         return recursiveSolve();
     }
     
-    private boolean recursiveSolve() {
+    public boolean recursiveSolve() {
         //System.out.println("Before:");
         //writeMatrix();
         int changed = 1;
@@ -215,7 +215,7 @@ public class SudokuSolver {
         return checkValidity(sudoku);
     }
     
-    private void initializeCells() {
+    public void initializeCells() {
         for (int i = 0; i < length; ++i) {
             for (int j = 0; j < length; ++j) {
                 if (sudoku.getCell(i, j).isGiven()) {
@@ -955,6 +955,14 @@ public class SudokuSolver {
             return false;
         }
         return true;
+    }
+    
+    public int getNumericalScore() {
+        return 17; //difficulty score
+    }
+    
+    public String getDifficulty() {
+        return "Medium";
     }
     
     private void writeMatrix() {

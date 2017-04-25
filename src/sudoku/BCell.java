@@ -62,6 +62,10 @@ public class BCell implements Cell{
         return given;
     }
 
+    public void setGiven(boolean given) {
+        this.given = given;
+    }
+    
     public int getPossibilityCount() {
         return possibles.cardinality();
     }

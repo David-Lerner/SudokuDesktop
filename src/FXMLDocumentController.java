@@ -611,17 +611,28 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     public void newGame() {
         undoCurrentSelected();
-        //if (sudokus.size() <= sudokuNumber)
-        reset(new Sudoku(sudokus.get(sudokuNumber++)));
+        if (sudokuNumber < sudokus.size()) {
+            sudokuGame = new SudokuGame(new Sudoku(sudokus.get(sudokuNumber++)));
+            refresh();
+            sudokuGame.begin();
+        }
     }
     
     @FXML
     public void loadGame() {
+        undoCurrentSelected();
+        SudokuGame newGame = sudokuGame;
         String filename = null;
         JFileChooser chooser = new JFileChooser();
-         if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION)
+        if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
             filename = chooser.getSelectedFile().getPath();
-         try {
+            FileModel fileModel = new FileModel(filename);
+            sudokuGame = fileModel.loadGame(null);
+            refresh();
+            sudokuGame.start();
+        }
+         
+        /*try {
             BufferedReader br = new BufferedReader(new FileReader(DEFAULT_GAME));
             String line = br.readLine();  
                 if (line.contains("G")) {
@@ -636,52 +647,42 @@ public class FXMLDocumentController implements Initializable {
                             grid[i][j] = Character.getNumericValue(initialBoard[i][j]);
                         }
                     }
-                    reset(new Sudoku(grid));
+                    sudokuGame = new SudokuGame(new Sudoku(grid));
+                    refresh();
+                    sudokuGame.begin();
                 }
             br.close();
         } catch(FileNotFoundException ex) {
             System.out.println("Unable to open file '" + DEFAULT_GAME + "'");                
         } catch(IOException ex) {
             System.out.println("Error reading file '" + DEFAULT_GAME + "'");                   
-        }
+        }*/
+        
     }
     
     @FXML
     public void saveGame() {
-        undoCurrentSelected();
-        TextInputDialog dialog = new TextInputDialog("New Game");
+        undoCurrentSelected();       
+        TextInputDialog dialog = new TextInputDialog(sudokuGame.getName());
         dialog.setTitle("Save a Sudoku puzzle");
-        dialog.setContentText("Please a name:");
+        dialog.setContentText("Please enter a name:");
         Optional<String> result = dialog.showAndWait();
         if (result.isPresent()){
-            try {
-            BufferedWriter out = new BufferedWriter(new FileWriter(result.get()));
-            out.write("Grid: "+result.get()+"\n");
-            for (int i = 0; i < 9; i++) {
-                for (int j = 0; j < 9; j++) {
-                    out.write(sudokuGame.getSudoku().getCell(i, j).getValue());
-                }
-                out.write("\n");
-            }
-            out.close();
-            } catch (IOException e) {
-                System.out.println(e.getMessage());
-            }
-        }        
+            FileModel fileModel = new FileModel(result.get());
+            fileModel.saveGame(sudokuGame, null);
+        }
+               
     }
     
     @FXML
     public void solveGame() {
         undoCurrentSelected();
-        SudokuSolver s = new SudokuSolver(new Sudoku(sudokuGame.getSudoku()));
-        if (s.solve()) {
-            reset(s.getSudoku());
-        } else {
-            System.out.println("No solution");
-        }
+        sudokuGame.showAllAnswers();
+        refresh();
         /*Sudoku solution = SudokuSolver.solve(sudoku);
         if (solution != null) {
-            reset(solution);
+            sudokuGame.end();
+            refresh();
         } else {
             System.out.println("No solution");
         }*/
@@ -845,9 +846,4 @@ public class FXMLDocumentController implements Initializable {
         clicked = false;
     }
     
-    private void reset(Sudoku newSudoku) {
-        sudokuGame = new SudokuGame(newSudoku);
-        refresh();
-        sudokuGame.begin();
-    }
 }
