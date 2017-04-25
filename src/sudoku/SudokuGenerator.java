@@ -16,9 +16,16 @@ public class SudokuGenerator {
     private static final String DEFAULT_GAME = "puzzler.txt";
     
     public static final String RANDOM = "Random";
+    public static final String DIABOLICAL = "Diabolical";
+    public static final String EASY = "Easy";
+    public static final String HARD = "Hard";
+    public static final String MEDIUM = "Medium";
+    public static final String ULTRA_EASY = "Ultra Easy";
+
     
     private int sudokuNumber;
     private List<int[][]> sudokus = new ArrayList<>();
+    private List<String> difficulties = new ArrayList<>();
     
     public SudokuGenerator() {
         sudokuNumber = 0;
@@ -29,6 +36,10 @@ public class SudokuGenerator {
             String line;  
             while((line = br.readLine()) != null){
                 if (line.contains("G")) {
+                    String[] metaData = line.split(" ");
+                    if (metaData.length > 2) {
+                        difficulties.add(metaData[2]);
+                    }
                     char[][] initialBoard = new char[9][9];
                     for (int i = 0; i < 9; i++) {
                         line = br.readLine();
@@ -54,6 +65,15 @@ public class SudokuGenerator {
     public Sudoku getSudoku(String difficulty) {
         if (difficulty.equals(RANDOM)) {
             return new Sudoku(sudokus.get(sudokuNumber++));
+        }
+        else {
+            int i = 0;
+            while (!difficulties.get(i).equals(difficulty)) {
+                ++i;
+            }
+            if (i < sudokus.size()) {
+                return new Sudoku(sudokus.get(i));
+            }
         }
         return null;
     }

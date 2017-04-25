@@ -29,7 +29,11 @@ import javafx.scene.layout.GridPane;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Node;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar.ButtonData;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
@@ -72,6 +76,12 @@ public class FXMLDocumentController implements Initializable {
     
     @FXML
     private Label elapsed;
+    
+    @FXML
+    private Label name;
+    
+    @FXML
+    private Label difficulty;
     
     public static final int BASE = 3;
     private static final int CELL_SIZE = 40;
@@ -131,6 +141,7 @@ public class FXMLDocumentController implements Initializable {
 
       sudokuGenerator = new SudokuGenerator();
       sudokuGame = new SudokuGame(new Sudoku(model));
+      resetLabels();
       sudokuGame.begin();
         /*int sample[][] = {{ 3, 0, 6, 5, 0, 8, 4, 0, 0 }, //
                         { 5, 2, 0, 0, 0, 0, 0, 0, 0 }, //
@@ -161,6 +172,7 @@ public class FXMLDocumentController implements Initializable {
             }
             sudokuGame = new SudokuGame(new Sudoku(grid));
             refresh();
+            resetLabels();
             sudokuGame.begin();
         } catch(FileNotFoundException ex) {
             System.out.println("Unable to open file '" + DEFAULT_GAME + "'");                
@@ -241,6 +253,11 @@ public class FXMLDocumentController implements Initializable {
         }, 0, 1000);
     }
     
+    private void resetLabels() {
+        name.setText(sudokuGame.getName());
+        difficulty.setText(sudokuGame.getDifficulty());
+    }
+    
     private class CellTile extends StackPane implements Selectable{
         int targetI, targetJ;
         private boolean selected = false;
@@ -312,6 +329,9 @@ public class FXMLDocumentController implements Initializable {
         @Override
         public void resolve(Selectable s) {
             System.out.println("resolving cell tile");
+            //undo error coloring
+            text.setFill(sudokuGame.isGiven(targetI, targetJ)? Color.BLUE : Color.BLACK);
+            
             if (s == null) {
                 currentSelected = this;
                 setSelected(true);
@@ -349,6 +369,10 @@ public class FXMLDocumentController implements Initializable {
             text.setFill(sudokuGame.isGiven(targetI, targetJ)? Color.BLUE : Color.BLACK);
             for (int i = 0; i < LENGTH; i++)
                 possibles[i].setVisible(sudokuGame.containsPossibility(targetI, targetJ, i+1));
+        }
+        
+        public void setError() {
+            text.setFill(Color.RED);
         }
         
     }
@@ -586,11 +610,39 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     public void newGame() {
         undoCurrentSelected();
-        Sudoku sudoku = sudokuGenerator.getSudoku(SudokuGenerator.RANDOM);
+        Alert alert = new Alert(AlertType.CONFIRMATION);
+        alert.setTitle("Select Difficulty");
+        alert.setHeaderText("Select Difficulty");
+
+        ButtonType buttonTypeOne = new ButtonType(SudokuGenerator.EASY);
+        ButtonType buttonTypeTwo = new ButtonType(SudokuGenerator.MEDIUM);
+        ButtonType buttonTypeThree = new ButtonType(SudokuGenerator.HARD);
+        ButtonType buttonTypeCancel = new ButtonType("Cancel", ButtonData.CANCEL_CLOSE);
+
+        alert.getButtonTypes().setAll(buttonTypeOne, buttonTypeTwo, buttonTypeThree, buttonTypeCancel);
+
+        Sudoku sudoku = null;
+        String diff;
+        Optional<ButtonType> result = alert.showAndWait();
+        if (result.get() == buttonTypeOne){
+            sudoku = sudokuGenerator.getSudoku(SudokuGenerator.EASY);
+            diff = SudokuGenerator.EASY;
+        } else if (result.get() == buttonTypeTwo) {
+            diff = SudokuGenerator.MEDIUM;
+        } else if (result.get() == buttonTypeThree) {
+            diff = SudokuGenerator.HARD;
+        } else {
+            // ... user chose CANCEL or closed the dialog
+            diff = null;
+        }
+        if (diff != null) {
+            sudoku = sudokuGenerator.getSudoku(diff);
+        }
         if (sudoku != null) {
             sudokuGame = new SudokuGame(sudoku);
-            sudokuGame.setDifficulty(sudokuGenerator.RANDOM);
+            sudokuGame.setDifficulty(diff);
             refresh();
+            resetLabels();
             sudokuGame.begin();
         }
     }
@@ -611,6 +663,7 @@ public class FXMLDocumentController implements Initializable {
             FileModel fileModel = new FileModel(file.getPath());
             sudokuGame = fileModel.loadGame(null);
             refresh();
+            resetLabels();
             sudokuGame.start();
         }
         
@@ -638,8 +691,10 @@ public class FXMLDocumentController implements Initializable {
         fileChooser.getExtensionFilters().addAll(new ExtensionFilter("JSON Files", "*.json"));
         File file = fileChooser.showSaveDialog(null);
         if (file != null) {
+            sudokuGame.setName(file.getName().substring(0,file.getName().lastIndexOf(".")));
             FileModel fileModel = new FileModel(file.getPath());
             fileModel.saveGame(sudokuGame, null);
+            resetLabels();
         }
                
     }
@@ -669,6 +724,52 @@ public class FXMLDocumentController implements Initializable {
     public void redoMove() {
         sudokuGame.redo();
         refresh();
+    }
+    
+    @FXML
+    public void showAllErrors() {
+        undoCurrentSelected();
+        boolean[][] errors = sudokuGame.showAllErrors();
+        for (int i = 0; i < errors.length; ++i) {
+            for (int j = 0; j < errors[i].length; ++j) {
+                if (errors[i][j]) {
+                    cellGrid[i][j].setError();
+                }
+            }
+        }
+    }
+    
+    @FXML
+    public void showError() {
+        if (currentSelected instanceof CellTile) {
+            CellTile tile = (CellTile) currentSelected;
+            if (sudokuGame.showError(tile.getTargetI(), tile.getTargetJ())) {
+                tile.setError();
+            }
+        } else {
+            Alert alert = new Alert(AlertType.INFORMATION);
+            alert.setTitle("No cell selected");
+            alert.setHeaderText(null);
+            alert.setContentText("No cell selected");
+
+            alert.showAndWait();
+        }
+    }
+    
+    @FXML
+    public void showValue() {
+        if (currentSelected instanceof CellTile) {
+            CellTile tile = (CellTile) currentSelected;
+            sudokuGame.showAnswer(tile.getTargetI(), tile.getTargetJ());
+            tile.update();
+        } else {
+            Alert alert = new Alert(AlertType.INFORMATION);
+            alert.setTitle("No cell selected");
+            alert.setHeaderText(null);
+            alert.setContentText("No cell selected");
+
+            alert.showAndWait();
+        }
     }
     
     @FXML

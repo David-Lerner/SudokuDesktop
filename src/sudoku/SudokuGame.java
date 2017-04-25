@@ -648,7 +648,8 @@ public class SudokuGame {
             Sudoku solved = s.getSudoku();
             for (int i = 0; i < length; ++i) {
                 for (int j = 0; j < length; ++j) {
-                    if (sudoku.getCell(i, j).getValue() != solved.getCell(i, j).getValue()) {
+                    int value = sudoku.getCell(i, j).getValue();
+                    if (solved.getCell(i, j).getValue() != value && value != 0) {
                         errors[i*length+j][sudoku.getCell(i, j).getValue()-1] = true;
                         mistakes[i][j] = true;
                     }
@@ -662,7 +663,8 @@ public class SudokuGame {
         SudokuSolver s = new SudokuSolver(new Sudoku(sudoku));
         if (s.solve()) {
             errors[length*length][0] = true; 
-            if (sudoku.getCell(i, j).getValue() != s.getSudoku().getCell(i, j).getValue()) {
+            int value = sudoku.getCell(i, j).getValue();
+            if (s.getSudoku().getCell(i, j).getValue() != value && value != 0) {
                 errors[i*length+j][sudoku.getCell(i, j).getValue()-1] = true;
                 return true;
             }

@@ -90,6 +90,21 @@
                   <Insets bottom="10.0" top="10.0" />
                </VBox.margin>
             </Button>
+            <Button mnemonicParsing="false" onAction="#showAllErrors" text="Show all errors">
+               <VBox.margin>
+                  <Insets bottom="10.0" top="10.0" />
+               </VBox.margin>
+            </Button>
+            <Button mnemonicParsing="false" onAction="#showError" text="Show single error">
+               <VBox.margin>
+                  <Insets bottom="10.0" top="10.0" />
+               </VBox.margin>
+            </Button>
+            <Button mnemonicParsing="false" onAction="#showValue" text="Show real cell value">
+               <VBox.margin>
+                  <Insets bottom="10.0" top="10.0" />
+               </VBox.margin>
+            </Button>
             <Button mnemonicParsing="false" onAction="#solveGame" text="Solve">
                <VBox.margin>
                   <Insets bottom="10.0" top="10.0" />

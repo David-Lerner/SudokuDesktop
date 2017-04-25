@@ -45,7 +45,7 @@ public class FileModel implements SudokuModel{
         this.fileLocation = fileLocation;
     }
     
-    public class Staff {
+    /*public class Staff {
 
 	private String name;
 	private int age;
@@ -185,7 +185,7 @@ public class FileModel implements SudokuModel{
 
         return staff;
 
-    }
+    }*/
     
     private class SaveGame {
         private String name;
@@ -325,6 +325,7 @@ public class FileModel implements SudokuModel{
     private SaveGame createSaveGame(SudokuGame sg) {
         SaveGame game = new SaveGame();
         
+        game.setName(sg.getName());
         game.setDifficulty(sg.getDifficulty());
         game.setStatus(sg.getStatus());
         
