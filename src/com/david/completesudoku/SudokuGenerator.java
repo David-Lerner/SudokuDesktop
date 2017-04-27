@@ -1,4 +1,4 @@
-package sudoku;
+package com.david.completesudoku;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;

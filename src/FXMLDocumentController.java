@@ -50,14 +50,14 @@ import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.FileChooser.ExtensionFilter;
 import javax.swing.JFileChooser;
-import sudoku.ACell;
-import sudoku.BCell;
-import sudoku.Sudoku;
-import sudoku.Cell;
-import sudoku.Selectable;
-import sudoku.SudokuGame;
-import sudoku.SudokuGenerator;
-import sudoku.SudokuSolver;
+import com.david.completesudoku.ACell;
+import com.david.completesudoku.BCell;
+import com.david.completesudoku.Sudoku;
+import com.david.completesudoku.Cell;
+import com.david.completesudoku.Selectable;
+import com.david.completesudoku.SudokuGame;
+import com.david.completesudoku.SudokuGenerator;
+import com.david.completesudoku.SudokuSolver;
 
 /**
  *

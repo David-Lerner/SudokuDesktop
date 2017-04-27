@@ -14,9 +14,9 @@
     <top>
         <HBox prefHeight="40.0" prefWidth="480.0" BorderPane.alignment="CENTER">
          <children>
-            <VBox prefHeight="200.0" prefWidth="100.0">
+            <VBox prefHeight="48.0" prefWidth="119.0">
                <children>
-                  <Label fx:id="name" text="Name">
+                  <Label fx:id="name" prefHeight="27.0" prefWidth="122.0" text="New Sudoku">
                      <font>
                         <Font name="System Bold" size="18.0" />
                      </font>
@@ -78,18 +78,25 @@
          </BorderPane.margin></GridPane>
    </bottom>
    <right>
-      <VBox alignment="CENTER" prefHeight="200.0" prefWidth="100.0" BorderPane.alignment="CENTER">
+      <VBox alignment="CENTER" prefHeight="306.0" BorderPane.alignment="CENTER">
          <children>
-            <Button mnemonicParsing="false" onAction="#undoMove" text="Undo">
+            <HBox alignment="CENTER">
+               <children>
+                  <Button mnemonicParsing="false" onAction="#undoMove" text="Undo">
+                     <HBox.margin>
+                        <Insets left="5.0" right="5.0" />
+                     </HBox.margin>
+                  </Button>
+                  <Button mnemonicParsing="false" onAction="#redoMove" text="Redo">
+                     <HBox.margin>
+                        <Insets left="5.0" right="5.0" />
+                     </HBox.margin>
+                  </Button>
+               </children>
                <VBox.margin>
                   <Insets bottom="10.0" top="10.0" />
                </VBox.margin>
-            </Button>
-            <Button mnemonicParsing="false" onAction="#redoMove" text="Redo">
-               <VBox.margin>
-                  <Insets bottom="10.0" top="10.0" />
-               </VBox.margin>
-            </Button>
+            </HBox>
             <Button mnemonicParsing="false" onAction="#showAllErrors" text="Show all errors">
                <VBox.margin>
                   <Insets bottom="10.0" top="10.0" />
@@ -105,14 +112,14 @@
                   <Insets bottom="10.0" top="10.0" />
                </VBox.margin>
             </Button>
-            <Button mnemonicParsing="false" onAction="#solveGame" text="Solve">
+            <Button mnemonicParsing="false" onAction="#solveGame" text="Show Solution">
                <VBox.margin>
                   <Insets bottom="10.0" top="10.0" />
                </VBox.margin>
             </Button>
          </children>
          <BorderPane.margin>
-            <Insets />
+            <Insets right="10.0" />
          </BorderPane.margin>
          <opaqueInsets>
             <Insets />

@@ -1,4 +1,4 @@
-package sudoku;
+package com.david.completesudoku;
 
 import java.util.Arrays;
 import java.util.BitSet;
@@ -958,7 +958,16 @@ public class SudokuSolver {
     }
     
     public int getNumericalScore() {
-        return 17; //difficulty score
+        int[] weights = new int[strategyCounts.length];
+        for (int i = 0; i < weights.length; ++i) {
+            weights[i] = i;
+        }
+        int sum = 0;
+        for (int i = 0; i < weights.length; i++) 
+        {
+            sum += strategyCounts[i] * weights[i];    
+        }
+        return sum; //difficulty score
     }
     
     public String getDifficulty() {

@@ -8,8 +8,8 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 
-import sudoku.SudokuGame;
-import sudoku.SudokuModel;
+import com.david.completesudoku.SudokuGame;
+import com.david.completesudoku.SudokuModel;
 
 import com.google.gson.Gson;
 import java.io.BufferedReader;
@@ -22,14 +22,14 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import jdk.nashorn.internal.runtime.regexp.joni.constants.TargetInfo;
-import sudoku.Cell;
-import sudoku.Sudoku;
-import sudoku.SudokuGame.Action;
-import sudoku.SudokuGame.ActionPair;
-import sudoku.SudokuGame.FillCellAction;
-import sudoku.SudokuGame.SetCellAction;
-import sudoku.SudokuGame.SetHighlightedAction;
-import sudoku.SudokuGame.SetPossibilityAction;
+import com.david.completesudoku.Cell;
+import com.david.completesudoku.Sudoku;
+import com.david.completesudoku.SudokuGame.Action;
+import com.david.completesudoku.SudokuGame.ActionPair;
+import com.david.completesudoku.SudokuGame.FillCellAction;
+import com.david.completesudoku.SudokuGame.SetCellAction;
+import com.david.completesudoku.SudokuGame.SetHighlightedAction;
+import com.david.completesudoku.SudokuGame.SetPossibilityAction;
 
 
 

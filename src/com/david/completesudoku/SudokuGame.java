@@ -1,4 +1,4 @@
-package sudoku;
+package com.david.completesudoku;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
