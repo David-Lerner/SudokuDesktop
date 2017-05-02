@@ -23,12 +23,7 @@ import java.util.Iterator;
 import java.util.Map;
 import com.david.completesudoku.Cell;
 import com.david.completesudoku.Sudoku;
-import com.david.completesudoku.SudokuGame.Action;
-import com.david.completesudoku.SudokuGame.ActionPair;
-import com.david.completesudoku.SudokuGame.FillCellAction;
-import com.david.completesudoku.SudokuGame.SetCellAction;
-import com.david.completesudoku.SudokuGame.SetHighlightedAction;
-import com.david.completesudoku.SudokuGame.SetPossibilityAction;
+import com.david.completesudoku.SudokuGame.*;
 import com.google.gson.GsonBuilder;
 import java.util.BitSet;
 import java.util.Base64;
@@ -344,59 +339,31 @@ public class FileModel implements SudokuModel{
         game.setStatus(sg.getStatus());
         
         game.setScore(sg.getScore());
-        BitSet bs = new BitSet(length*length);
-        for (int i = 0; i < length*length; i++) {
-            if (sg.getAnswers()[i]) {
-                bs.set(i);
-            }
-        }
-        game.setAnswers(Base64.getEncoder().encodeToString(bs.toByteArray()));
+        game.setAnswers(boolArray2String(sg.getAnswers()));
         
-        bs = new BitSet(length*length*length);
-        for (int i = 0; i < length*length; i++) {
-            for (int j = 0; j < length; j++) {
-                if (sg.getErrors()[i][j]) {
-                    bs.set(i*length+j);
-                }
-            }
-        }
-        game.setErrors(Base64.getEncoder().encodeToString(bs.toByteArray()));
+        game.setErrors(bool2dArray2String(sg.getErrors()));
         game.setHints(sg.getHints());
         
         game.setCurrentTime(sg.getCurrentTime());
         game.setElapsed(sg.getElapsed());
         
-        bs = new BitSet(length*length);
-        for (int i = 0; i < length; i++) {
-            for (int j = 0; j < length; j++) {
-                if (sg.getHighlighted()[i][j]) {
-                    bs.set(i*length+j);
-                }
-            }
-        }
-        game.setHighlighted(Base64.getEncoder().encodeToString(bs.toByteArray()));
+        game.setHighlighted(bool2dArray2String(sg.getHighlighted()));
         
         int[] value = new int[length*length];
-        BitSet given = new BitSet(length*length);
-        BitSet possible = new BitSet(length*length*length);
+        boolean[] given = new boolean[length*length];
+        boolean[][] possible = new boolean[length*length][length];
         for (int i = 0; i < length; ++i) {
             for (int j = 0; j < length; ++j) {
                 int id = i*length+j;
                 Cell c = sudoku.getCell(i, j);
                 value[id] = c.getValue();
-                if (c.isGiven()) {
-                    given.set(id);
-                }
-                for (int n = 1; n <= length; n++) {
-                    if (c.containsPossibility(n)) {
-                        possible.set(id*length+n-1);
-                    }
-                }
+                given[id] = c.isGiven();
+                possible[id] = c.getPossibilities();
             }
         }
         game.setValue(value);
-        game.setGiven(Base64.getEncoder().encodeToString(given.toByteArray()));
-        game.setPossible(Base64.getEncoder().encodeToString(possible.toByteArray()));
+        game.setGiven(boolArray2String(given));
+        game.setPossible(bool2dArray2String(possible));
         
         List<Map<String, Map<String, String>>> undo = getListFromActions(sg.getUndo());
         List<Map<String, Map<String, String>>> redo = getListFromActions(sg.getRedo());
@@ -448,53 +415,29 @@ public class FileModel implements SudokuModel{
             map.put("name", "SetHighlightedAction");
             map.put("targets", Arrays.toString(a.getTargets().toArray()).replaceAll("[,\\[\\]]", ""));
             map.put("isIsHighlighted", String.valueOf(a.isIsHighlighted()));
-        }        
+        } else if (action instanceof ShowPossibilitiesAction) {
+            map.put("name", "ShowPossibilitiesAction");
+        } else if (action instanceof RemovePossibilitiesAction) {
+            map.put("name", "RemovePossibilitiesAction");
+        } else if (action instanceof FillPossibilitiesAction) {
+            FillPossibilitiesAction a = (FillPossibilitiesAction)action;
+            map.put("name", "FillPossibilitiesAction");
+            map.put("possibles", bool2dArray2String(a.getPossibles()));
+        }
         return map;
     }
     
     private SudokuGame createSudokuGame(SaveGame sg) {
         int length = (int)Math.sqrt(sg.getValue().length);
-        BitSet bs = BitSet.valueOf(Base64.getDecoder().decode(sg.getGiven()));
-        boolean[] given = new boolean[length*length];
-        for (int i = 0; i < given.length; i++) {
-            if (i == bs.length())
-                break;
-            given[i] = bs.get(i);
-        }
-        bs = BitSet.valueOf(Base64.getDecoder().decode(sg.getPossible()));
-        boolean[][] possible = new boolean[length*length][length];
-        OUT: for (int i = 0; i < length*length; i++) {
-            for (int j = 0; j < length; j++) {
-                if (i*length+j == bs.length())
-                    break OUT;
-                possible[i][j] = bs.get(i*length+j);
-            }
-        }
-        bs = BitSet.valueOf(Base64.getDecoder().decode(sg.getHighlighted()));
-        boolean[][] highlighted = new boolean[length][length];
-        OUT: for (int i = 0; i < length; i++) {
-            for (int j = 0; j < length; j++) {
-                if (i*length+j == bs.length())
-                    break OUT;
-                highlighted[i][j] = bs.get(i*length+j);
-            }
-        }
-        bs = BitSet.valueOf(Base64.getDecoder().decode(sg.getAnswers()));
-        boolean[] answers = new boolean[length*length];
-        for (int i = 0; i < answers.length; i++) {
-            if (i == bs.length())
-                break;
-            answers[i] = bs.get(i);
-        }
-        bs = BitSet.valueOf(Base64.getDecoder().decode(sg.getAnswers()));
-        boolean[][] errors = new boolean[length*length][length];
-        OUT: for (int i = 0; i < length*length; i++) {
-            for (int j = 0; j < length; j++) {
-                if (i*length+j == bs.length())
-                    break OUT;
-                errors[i][j] = bs.get(i*length+j);
-            }
-        }
+
+        boolean[] given = string2BoolArray(sg.getGiven(), length*length);        
+        boolean[][] possible = string2Bool2dArray(sg.getPossible(), length*length, length);
+        
+        boolean[][] highlighted = string2Bool2dArray(sg.getHighlighted(), length, length);
+        
+        boolean[] answers = string2BoolArray(sg.getAnswers(), length*length); 
+        boolean[][] errors = string2Bool2dArray(sg.getErrors(), length*length, length);
+        
         SudokuGame game = new SudokuGame(new Sudoku(sg.getValue(), given, possible), 
                 highlighted, sg.getCurrentTime(), sg.getElapsed(), sg.getName(), 
                 sg.getDifficulty(), sg.getStatus(), sg.getScore(), answers, errors, sg.getHints());
@@ -544,8 +487,61 @@ public class FileModel implements SudokuModel{
             }
             a = game.new SetHighlightedAction(targets, 
                     Boolean.parseBoolean(map.get("isIsHighlighted")));
-        }        
+        } else if (name.equals("ShowPossibilitiesAction")) {
+            a = game.new ShowPossibilitiesAction();
+        } else if (name.equals("RemovePossibilitiesAction")) {
+            a = game.new RemovePossibilitiesAction();
+        } else if (name.equals("FillPossibilitiesAction")) {
+            int length = game.getLength();
+            a = game.new FillPossibilitiesAction(string2Bool2dArray(map.get("possibles"), length*length, length));
+        }
         return a;
+    }
+    
+    private String boolArray2String(boolean[] array) {
+        BitSet bs = new BitSet(array.length);
+        for (int i = 0; i < array.length; i++) {
+            if (array[i]) {
+                bs.set(i);
+            }
+        }
+        return Base64.getEncoder().encodeToString(bs.toByteArray());
+    }
+    
+     private String bool2dArray2String(boolean[][] array) {
+        BitSet bs = new BitSet(array.length*array[0].length);
+        for (int i = 0; i < array.length; i++) {
+            for (int j = 0; j < array[i].length; j++) {
+                if (array[i][j]) {
+                    bs.set(i*array[i].length+j);
+                }
+            }
+        }
+        return Base64.getEncoder().encodeToString(bs.toByteArray());
+    }
+    
+    private boolean[] string2BoolArray(String string, int length) {
+        BitSet bs = BitSet.valueOf(Base64.getDecoder().decode(string));
+        boolean[] array = new boolean[length];
+        for (int i = 0; i < length; i++) {
+            if (i == bs.length())
+                return array;
+            array[i] = bs.get(i);
+        }
+        return array;
+    }
+    
+    private boolean[][] string2Bool2dArray(String string, int length, int length2) {
+        BitSet bs = BitSet.valueOf(Base64.getDecoder().decode(string));
+        boolean[][] array = new boolean[length][length2];
+        for (int i = 0; i < length; i++) {
+            for (int j = 0; j < length2; j++) {
+                if (i*length2+j == bs.length())
+                    return array;
+                array[i][j] = bs.get(i*length2+j);
+            }
+        }
+        return array;
     }
     
     @Override

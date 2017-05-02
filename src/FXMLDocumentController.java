@@ -784,6 +784,27 @@ public class FXMLDocumentController implements Initializable {
     }
     
     @FXML
+    public void restartGame() {
+        undoCurrentSelected();
+        sudokuGame.reset();
+        refresh();
+    }
+    
+    @FXML
+    public void fillNotes() {
+        undoCurrentSelected();
+        sudokuGame.showPossibilities();
+        refresh();
+    }
+    
+    @FXML
+    public void removeNotes() {
+        undoCurrentSelected();
+        sudokuGame.removePossibilities();
+        refresh();
+    }
+    
+    @FXML
     public void test() {
         //change the test function to whatever appropriate functionality you are testing
         test5();
