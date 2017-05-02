@@ -21,7 +21,6 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import jdk.nashorn.internal.runtime.regexp.joni.constants.TargetInfo;
 import com.david.completesudoku.Cell;
 import com.david.completesudoku.Sudoku;
 import com.david.completesudoku.SudokuGame.Action;
@@ -30,6 +29,9 @@ import com.david.completesudoku.SudokuGame.FillCellAction;
 import com.david.completesudoku.SudokuGame.SetCellAction;
 import com.david.completesudoku.SudokuGame.SetHighlightedAction;
 import com.david.completesudoku.SudokuGame.SetPossibilityAction;
+import com.google.gson.GsonBuilder;
+import java.util.BitSet;
+import java.util.Base64;
 
 
 
@@ -193,17 +195,18 @@ public class FileModel implements SudokuModel{
         private String status;
         
         private int score;
-        private boolean[] answers; 
-        private boolean[][] errors; 
+        private String answers; 
+        private String errors;
+        private boolean[] hints;
 
         private long currentTime;
         private long elapsed;
 
-        private boolean[][] highlighted;
+        private String highlighted;
         
         private int[] value;
-        private boolean[] given; 
-        private boolean[][] possible; 
+        private String given; 
+        private String possible; 
         
         private List<Map<String, Map<String, String>>> undo;
         private List<Map<String, Map<String, String>>> redo;
@@ -220,11 +223,11 @@ public class FileModel implements SudokuModel{
             return elapsed;
         }
 
-        public boolean[] getGiven() {
+        public String getGiven() {
             return given;
         }
 
-        public boolean[][] getHighlighted() {
+        public String getHighlighted() {
             return highlighted;
         }
 
@@ -232,7 +235,7 @@ public class FileModel implements SudokuModel{
             return name;
         }
 
-        public boolean[][] getPossible() {
+        public String getPossible() {
             return possible;
         }
 
@@ -244,11 +247,11 @@ public class FileModel implements SudokuModel{
             return score;
         }
 
-        public boolean[][] getErrors() {
+        public String getErrors() {
             return errors;
         }
 
-        public boolean[] getAnswers() {
+        public String getAnswers() {
             return answers;
         }
 
@@ -264,6 +267,10 @@ public class FileModel implements SudokuModel{
             return value;
         }
 
+        public boolean[] getHints() {
+            return hints;
+        }
+
         public void setCurrentTime(long currentTime) {
             this.currentTime = currentTime;
         }
@@ -276,11 +283,11 @@ public class FileModel implements SudokuModel{
             this.elapsed = elapsed;
         }
 
-        public void setGiven(boolean[] given) {
+        public void setGiven(String given) {
             this.given = given;
         }
 
-        public void setHighlighted(boolean[][] highlighted) {
+        public void setHighlighted(String highlighted) {
             this.highlighted = highlighted;
         }
 
@@ -288,7 +295,7 @@ public class FileModel implements SudokuModel{
             this.name = name;
         }
 
-        public void setPossible(boolean[][] possible) {
+        public void setPossible(String possible) {
             this.possible = possible;
         }
 
@@ -300,11 +307,11 @@ public class FileModel implements SudokuModel{
             this.score = score;
         }
 
-        public void setErrors(boolean[][] errors) {
+        public void setErrors(String errors) {
             this.errors = errors;
         }
 
-        public void setAnswers(boolean[] answers) {
+        public void setAnswers(String answers) {
             this.answers = answers;
         }
 
@@ -319,42 +326,77 @@ public class FileModel implements SudokuModel{
         public void setValue(int[] value) {
             this.value = value;
         }
+
+        public void setHints(boolean[] hints) {
+            this.hints = hints;
+        }
         
     }
     
     private SaveGame createSaveGame(SudokuGame sg) {
         SaveGame game = new SaveGame();
         
+        Sudoku sudoku = sg.getSudoku();
+        int length = sudoku.getLength();
+        
         game.setName(sg.getName());
         game.setDifficulty(sg.getDifficulty());
         game.setStatus(sg.getStatus());
         
         game.setScore(sg.getScore());
-        game.setAnswers(sg.getAnswers());
-        game.setErrors(sg.getErrors());
+        BitSet bs = new BitSet(length*length);
+        for (int i = 0; i < length*length; i++) {
+            if (sg.getAnswers()[i]) {
+                bs.set(i);
+            }
+        }
+        game.setAnswers(Base64.getEncoder().encodeToString(bs.toByteArray()));
+        
+        bs = new BitSet(length*length*length);
+        for (int i = 0; i < length*length; i++) {
+            for (int j = 0; j < length; j++) {
+                if (sg.getErrors()[i][j]) {
+                    bs.set(i*length+j);
+                }
+            }
+        }
+        game.setErrors(Base64.getEncoder().encodeToString(bs.toByteArray()));
+        game.setHints(sg.getHints());
         
         game.setCurrentTime(sg.getCurrentTime());
         game.setElapsed(sg.getElapsed());
         
-        game.setHighlighted(sg.getHighlighted());
+        bs = new BitSet(length*length);
+        for (int i = 0; i < length; i++) {
+            for (int j = 0; j < length; j++) {
+                if (sg.getHighlighted()[i][j]) {
+                    bs.set(i*length+j);
+                }
+            }
+        }
+        game.setHighlighted(Base64.getEncoder().encodeToString(bs.toByteArray()));
         
-        Sudoku sudoku = sg.getSudoku();
-        int length = sudoku.getLength();
         int[] value = new int[length*length];
-        boolean[] given = new boolean[length*length];
-        boolean[][] possible = new boolean[length*length][length];
+        BitSet given = new BitSet(length*length);
+        BitSet possible = new BitSet(length*length*length);
         for (int i = 0; i < length; ++i) {
             for (int j = 0; j < length; ++j) {
                 int id = i*length+j;
                 Cell c = sudoku.getCell(i, j);
                 value[id] = c.getValue();
-                given[id] = c.isGiven();
-                possible[id] = c.getPossibilities();
+                if (c.isGiven()) {
+                    given.set(id);
+                }
+                for (int n = 1; n <= length; n++) {
+                    if (c.containsPossibility(n)) {
+                        possible.set(id*length+n-1);
+                    }
+                }
             }
         }
         game.setValue(value);
-        game.setGiven(given);
-        game.setPossible(possible);
+        game.setGiven(Base64.getEncoder().encodeToString(given.toByteArray()));
+        game.setPossible(Base64.getEncoder().encodeToString(possible.toByteArray()));
         
         List<Map<String, Map<String, String>>> undo = getListFromActions(sg.getUndo());
         List<Map<String, Map<String, String>>> redo = getListFromActions(sg.getRedo());
@@ -411,9 +453,51 @@ public class FileModel implements SudokuModel{
     }
     
     private SudokuGame createSudokuGame(SaveGame sg) {
-        SudokuGame game = new SudokuGame(new Sudoku(sg.getValue(), sg.getGiven(), sg.getPossible()), 
-                sg.getHighlighted(), sg.getCurrentTime(), sg.getElapsed(), sg.getName(), 
-                sg.getDifficulty(), sg.getStatus(), sg.getScore(), sg.getAnswers(), sg.getErrors());
+        int length = (int)Math.sqrt(sg.getValue().length);
+        BitSet bs = BitSet.valueOf(Base64.getDecoder().decode(sg.getGiven()));
+        boolean[] given = new boolean[length*length];
+        for (int i = 0; i < given.length; i++) {
+            if (i == bs.length())
+                break;
+            given[i] = bs.get(i);
+        }
+        bs = BitSet.valueOf(Base64.getDecoder().decode(sg.getPossible()));
+        boolean[][] possible = new boolean[length*length][length];
+        OUT: for (int i = 0; i < length*length; i++) {
+            for (int j = 0; j < length; j++) {
+                if (i*length+j == bs.length())
+                    break OUT;
+                possible[i][j] = bs.get(i*length+j);
+            }
+        }
+        bs = BitSet.valueOf(Base64.getDecoder().decode(sg.getHighlighted()));
+        boolean[][] highlighted = new boolean[length][length];
+        OUT: for (int i = 0; i < length; i++) {
+            for (int j = 0; j < length; j++) {
+                if (i*length+j == bs.length())
+                    break OUT;
+                highlighted[i][j] = bs.get(i*length+j);
+            }
+        }
+        bs = BitSet.valueOf(Base64.getDecoder().decode(sg.getAnswers()));
+        boolean[] answers = new boolean[length*length];
+        for (int i = 0; i < answers.length; i++) {
+            if (i == bs.length())
+                break;
+            answers[i] = bs.get(i);
+        }
+        bs = BitSet.valueOf(Base64.getDecoder().decode(sg.getAnswers()));
+        boolean[][] errors = new boolean[length*length][length];
+        OUT: for (int i = 0; i < length*length; i++) {
+            for (int j = 0; j < length; j++) {
+                if (i*length+j == bs.length())
+                    break OUT;
+                errors[i][j] = bs.get(i*length+j);
+            }
+        }
+        SudokuGame game = new SudokuGame(new Sudoku(sg.getValue(), given, possible), 
+                highlighted, sg.getCurrentTime(), sg.getElapsed(), sg.getName(), 
+                sg.getDifficulty(), sg.getStatus(), sg.getScore(), answers, errors, sg.getHints());
         game.setUndo(getActionsFromList(sg.getUndo(), game));
         game.setRedo(getActionsFromList(sg.getRedo(), game));
         return game;
@@ -469,7 +553,8 @@ public class FileModel implements SudokuModel{
         //Staff staff = createDummyObject();
 
         //1. Convert object to JSON string
-        Gson gson = new Gson();
+        Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+        createSaveGame(sudokuGame);
         //String json = gson.toJson(createSaveGame(sudokuGame));
         //System.out.println(json);
 
@@ -485,7 +570,7 @@ public class FileModel implements SudokuModel{
 
     @Override
     public SudokuGame loadGame(Object param) {
-        Gson gson = new Gson();
+        Gson gson = new GsonBuilder().disableHtmlEscaping().create();
         SudokuGame sudokuGame = null;
         try (BufferedReader in = new BufferedReader(new FileReader(fileLocation));) {
 

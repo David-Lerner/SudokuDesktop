@@ -22,6 +22,7 @@ public class SudokuGame {
     private int score;
     private boolean[] answers;
     private boolean[][] errors;
+    private boolean[] hints;
     
     private long currentTime;
     private long elapsed;
@@ -50,7 +51,7 @@ public class SudokuGame {
      * @param errors the errors that were shown to the user, last element is whether it was used
      */
     public SudokuGame(Sudoku sudoku, boolean[][] highlighted, long currentTime, long elapsed, 
-            String name, String difficulty, String status, int score, boolean[] answers, boolean[][] errors) {
+            String name, String difficulty, String status, int score, boolean[] answers, boolean[][] errors, boolean[] hints) {
         this.sudoku = sudoku;        
         this.highlighted = highlighted;
         this.currentTime = currentTime;
@@ -61,6 +62,7 @@ public class SudokuGame {
         this.score = score;
         this.answers = answers;
         this.errors = errors;
+        this.hints = hints;
         
         this.length = sudoku.getLength();
         this.paused = true;
@@ -83,7 +85,8 @@ public class SudokuGame {
         this.status = NEW;
         this.score = 0;
         this.answers = new boolean[length*length];
-        this.errors = new boolean[length*length+1][length];
+        this.errors = new boolean[length*length][length];
+        this.hints = new boolean[3];
         this.paused = true;
         this.solved = null;
     }
@@ -105,7 +108,8 @@ public class SudokuGame {
         status = NEW;
         score = 0;
         answers = new boolean[length*length];
-        errors = new boolean[length*length+1][length];
+        errors = new boolean[length*length][length];
+        hints = new boolean[3];
         paused = true;
         begin();
     }
@@ -675,15 +679,17 @@ public class SudokuGame {
         s.solve();
         double adjustedScore = s.getNumericalScore();
         if (answered) {
+            adjustedScore *= .6;
+        }
+        if (hints[0]) {
             adjustedScore *= .7;
         }
-        if (errors[length*length][1]) {
+        if (hints[1]) {
             adjustedScore *= .8;
         }
-        if (errors[length*length][0]) {
+        if (hints[2]) {
             adjustedScore *= .9;
         }
-        
         if (elapsed < 1000*60*5) {
             adjustedScore *= 2;
         } else if (elapsed < 1000*60*10) {
@@ -691,7 +697,7 @@ public class SudokuGame {
         } else if (elapsed < 1000*60*20) {
             adjustedScore *= 1.2;
         } else if (elapsed > 1000*60*60) {
-            adjustedScore *= 6;
+            adjustedScore *= 5;
         }
         
         score = (int) Math.floor(adjustedScore);
@@ -704,6 +710,10 @@ public class SudokuGame {
 
     public boolean[] getAnswers() {
         return answers;
+    }
+    
+    public boolean[] getHints() {
+        return hints;
     }
     
     public void showAllAnswers() {
@@ -726,7 +736,7 @@ public class SudokuGame {
     
     public boolean[][] showAllErrors() {
         boolean[][] mistakes = new boolean[length][length];      
-        errors[length*length][1] = true;
+        hints[0] = true;
         for (int i = 0; i < length; ++i) {
             for (int j = 0; j < length; ++j) {
                 int value = sudoku.getCell(i, j).getValue();
@@ -740,7 +750,7 @@ public class SudokuGame {
     }
     
     public boolean showError(int i, int j) {     
-        errors[length*length][0] = true; 
+        hints[1] = true; 
         int value = sudoku.getCell(i, j).getValue();
         if (getSolved(i, j) != value && value != 0) {
             errors[i*length+j][sudoku.getCell(i, j).getValue()-1] = true;
