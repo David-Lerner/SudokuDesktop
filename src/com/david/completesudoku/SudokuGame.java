@@ -10,7 +10,7 @@ import java.util.Deque;
  * @author David
  */
 public class SudokuGame {
-    
+    //constants
     public static final String NEW = "New";
     public static final String IN_PROGRESS = "In progress";
     public static final String COMPLETED = "Completed";
@@ -31,8 +31,10 @@ public class SudokuGame {
     private Deque<ActionPair> undo;
     private Deque<ActionPair> redo;
     
+    //fields not saved
     private int length;
     private boolean paused;
+    private int[][] solved;
 
     /**
      * Creates a Sudoku game from given information
@@ -49,8 +51,7 @@ public class SudokuGame {
      */
     public SudokuGame(Sudoku sudoku, boolean[][] highlighted, long currentTime, long elapsed, 
             String name, String difficulty, String status, int score, boolean[] answers, boolean[][] errors) {
-        this.sudoku = sudoku;
-        this.length = sudoku.getLength();
+        this.sudoku = sudoku;        
         this.highlighted = highlighted;
         this.currentTime = currentTime;
         this.elapsed = elapsed;
@@ -60,7 +61,10 @@ public class SudokuGame {
         this.score = score;
         this.answers = answers;
         this.errors = errors;
+        
+        this.length = sudoku.getLength();
         this.paused = true;
+        this.solved = null;
     }
 
     /**
@@ -81,6 +85,29 @@ public class SudokuGame {
         this.answers = new boolean[length*length];
         this.errors = new boolean[length*length+1][length];
         this.paused = true;
+        this.solved = null;
+    }
+    
+    public void reset() {
+        int[][] newPuzzle = new int[length][length];
+        for (int i = 0; i < length; ++i) {
+            for (int j = 0; j < length; ++j) {
+                if (sudoku.getCell(i, j).isGiven()) {
+                    newPuzzle[i][j] = sudoku.getCell(i, j).getValue();
+                }
+            }
+        }
+        sudoku = new Sudoku(newPuzzle);
+        highlighted = new boolean[length][length];
+        undo.clear();
+        redo.clear();
+        elapsed = 0;
+        status = NEW;
+        score = 0;
+        answers = new boolean[length*length];
+        errors = new boolean[length*length+1][length];
+        paused = true;
+        begin();
     }
     
     public Sudoku getSudoku() {
@@ -247,7 +274,7 @@ public class SudokuGame {
         private boolean isHighlighted;
 
         public SetHighlightedAction(int target, boolean isHighlighted) {
-            this(new ArrayList<>(), isHighlighted);
+            this(new ArrayList<Integer>(), isHighlighted);
             this.targets.add(target);
         }
         
@@ -273,13 +300,38 @@ public class SudokuGame {
         
     }
     
+    public void setEraseAction(int targetI, int targetJ) {
+        if (targetI < 0 || targetJ < 0 || targetI >= length || targetJ >= length) {
+            throw new IllegalArgumentException();
+        }
+        Cell c = sudoku.getCell(targetI, targetJ);
+        if (c.isGiven() || (c.getValue() == 0 && c.getPossibilityCount() == 0) || status.equals(COMPLETED)) {
+            return;
+        }
+        Action action, reverse;      
+        if (c.getValue() > 0) {
+            action = new SetCellAction(targetI, targetJ, 0);
+            reverse = new SetCellAction(targetI, targetJ, c.getValue());
+        } else {
+            action = new SetCellAction(targetI, targetJ, 0);
+            reverse = new FillCellAction(targetI, targetJ, 0, c.getPossibilities());
+        }
+        action.apply();
+        undo.push(new ActionPair(action, reverse));
+        redo.clear();
+    }
+    
     public void setValueAction(int targetI, int targetJ, int value) {
-        if (targetI < 0 || targetJ < 0 || value < 0 || 
+        if (value == 0) {
+            setEraseAction(targetI, targetJ);
+            return;
+        }
+        if (targetI < 0 || targetJ < 0 || value < 1 || 
                 targetI >= length || targetJ >= length || value > length) {
             throw new IllegalArgumentException();
         }
         Cell c = sudoku.getCell(targetI, targetJ);
-        if (c.isGiven() || (value == 0 && c.getValue() == 0) || status.equals(COMPLETED)) {
+        if (c.isGiven() || status.equals(COMPLETED)) {
             return;
         }
         Action action, reverse;      
@@ -308,10 +360,9 @@ public class SudokuGame {
         }
         if (count == length*length) {
             boolean valid = true;
-            SudokuSolver s = new SudokuSolver(new Sudoku(sudoku));
             for (int i = 0; i < length; ++i) {
                 for (int j = 0; j < length; ++j) {
-                    if (sudoku.getCell(i, j).getValue() != s.getSudoku().getCell(i, j).getValue()) {
+                    if (sudoku.getCell(i, j).getValue() != getSolved(i, j)) {
                         valid = false;
                     }
                 }     
@@ -323,6 +374,10 @@ public class SudokuGame {
     }
     
     public void setPossibleAction(int targetI, int targetJ, int value) {
+        if (value == 0) {
+            setEraseAction(targetI, targetJ);
+            return;
+        }
         if (targetI < 0 || targetJ < 0 || value < 1 || 
                 targetI >= length || targetJ >= length || value > length) {
             throw new IllegalArgumentException();
@@ -341,6 +396,28 @@ public class SudokuGame {
         } else {
             action = new SetPossibilityAction(targetI, targetJ, value, true);
             reverse = new SetPossibilityAction(targetI, targetJ, value, false);
+        }
+        action.apply();
+        undo.push(new ActionPair(action, reverse));
+        redo.clear();
+    }
+    
+    public void setPossibilitiesAction(int targetI, int targetJ, boolean[] possibilities) {
+        
+        if (targetI < 0 || targetJ < 0 || targetI >= length || targetJ >= length) {
+            throw new IllegalArgumentException();
+        }
+        Cell c = sudoku.getCell(targetI, targetJ);
+        if (c.isGiven() || status.equals(COMPLETED)) {
+            return;
+        }
+        Action action, reverse;      
+        if (c.getPossibilityCount() == 0) {
+            action = new FillCellAction(targetI, targetJ, 0, possibilities);
+            reverse = new SetCellAction(targetI, targetJ, c.getValue());
+        } else {
+            action = new FillCellAction(targetI, targetJ, 0, possibilities);
+            reverse = new FillCellAction(targetI, targetJ, 0, c.getPossibilities());
         }
         action.apply();
         undo.push(new ActionPair(action, reverse));
@@ -472,6 +549,20 @@ public class SudokuGame {
             throw new IllegalArgumentException();
         }    
         return sudoku.getCell(i, j).containsPossibility(value);
+    }
+    
+    public boolean[] getPossibilities(int i, int j) {
+        if (i < 0 || j < 0 || i >= length || j >= length) {
+            throw new IllegalArgumentException();
+        }    
+        return sudoku.getCell(i, j).getPossibilities();
+    }
+
+    public int getPossibilityCount(int i, int j) {
+        if (i < 0 || j < 0 || i >= length || j >= length) {
+            throw new IllegalArgumentException();
+        }
+        return sudoku.getCell(i, j).getPossibilityCount();
     }
 
     public void begin() {
@@ -616,43 +707,32 @@ public class SudokuGame {
     }
     
     public void showAllAnswers() {
-        SudokuSolver s = new SudokuSolver(new Sudoku(sudoku));
-        if (s.solve()) {
-            Sudoku solved = s.getSudoku();
-            for (int i = 0; i < length; ++i) {
-                for (int j = 0; j < length; ++j) {
-                    if (sudoku.getCell(i, j).getValue() != solved.getCell(i, j).getValue()) {
-                        answers[i*length+j] = true;
-                    }
+        for (int i = 0; i < length; ++i) {
+            for (int j = 0; j < length; ++j) {
+                if (sudoku.getCell(i, j).getValue() != getSolved(i, j)) {
+                    answers[i*length+j] = true;
+                    setValueAction(i, j, getSolved(i, j));
                 }
             }
-            sudoku = solved;
-            highlighted = new boolean[length][length];
-            end();
         }
+        //highlighted = new boolean[length][length];
+        end();
     }
     
     public void showAnswer(int i, int j) {
-        SudokuSolver s = new SudokuSolver(new Sudoku(sudoku));
-        if (s.solve()) {
-            answers[i*length+j] = true;
-            setValueAction(i, j, s.getSudoku().getCell(i, j).getValue());
-        }
+        answers[i*length+j] = true;
+        setValueAction(i, j, getSolved(i, j));
     }
     
     public boolean[][] showAllErrors() {
         boolean[][] mistakes = new boolean[length][length];      
-        SudokuSolver s = new SudokuSolver(new Sudoku(sudoku));
-        if (s.solve()) {
-            errors[length*length][1] = true;
-            Sudoku solved = s.getSudoku();
-            for (int i = 0; i < length; ++i) {
-                for (int j = 0; j < length; ++j) {
-                    int value = sudoku.getCell(i, j).getValue();
-                    if (solved.getCell(i, j).getValue() != value && value != 0) {
-                        errors[i*length+j][sudoku.getCell(i, j).getValue()-1] = true;
-                        mistakes[i][j] = true;
-                    }
+        errors[length*length][1] = true;
+        for (int i = 0; i < length; ++i) {
+            for (int j = 0; j < length; ++j) {
+                int value = sudoku.getCell(i, j).getValue();
+                if (getSolved(i, j) != value && value != 0) {
+                    errors[i*length+j][sudoku.getCell(i, j).getValue()-1] = true;
+                    mistakes[i][j] = true;
                 }
             }
         }
@@ -660,15 +740,35 @@ public class SudokuGame {
     }
     
     public boolean showError(int i, int j) {     
-        SudokuSolver s = new SudokuSolver(new Sudoku(sudoku));
-        if (s.solve()) {
-            errors[length*length][0] = true; 
-            int value = sudoku.getCell(i, j).getValue();
-            if (s.getSudoku().getCell(i, j).getValue() != value && value != 0) {
-                errors[i*length+j][sudoku.getCell(i, j).getValue()-1] = true;
-                return true;
-            }
+        errors[length*length][0] = true; 
+        int value = sudoku.getCell(i, j).getValue();
+        if (getSolved(i, j) != value && value != 0) {
+            errors[i*length+j][sudoku.getCell(i, j).getValue()-1] = true;
+            return true;
         }
         return false;
+    }
+    
+    public int getSolved(int targetI, int targetJ) {
+        if (solved == null) {
+            solved = new int[length][length];
+            SudokuSolver s = new SudokuSolver(new Sudoku(sudoku));
+            s.solve();
+            Sudoku su = s.getSudoku();
+            for (int i = 0; i < length; ++i) {
+                for (int j = 0; j < length; ++j) {
+                    solved[i][j] = su.getCell(i, j).getValue();
+                }
+            }
+        }
+        return solved[targetI][targetJ];
+    }
+    
+    public boolean hasUndo() {
+        return !undo.isEmpty();
+    }
+    
+    public boolean hasRedo() {
+        return !redo.isEmpty();
     }
 }
