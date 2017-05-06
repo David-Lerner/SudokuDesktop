@@ -287,9 +287,10 @@ public class FXMLDocumentController implements Initializable {
             border.setFill(Color.BLUE);
             inner.setStroke(Color.LIGHTGRAY);
             inner.setFill(sudokuGame.isHighlighted(targetI, targetJ)? Color.CYAN : Color.WHITE);
-
+            
             text.setFont(Font.font(null, sudokuGame.isGiven(targetI, targetJ) ? FontWeight.EXTRA_BOLD : FontWeight.NORMAL, CELL_SIZE/2));
             text.setFill(sudokuGame.isGiven(targetI, targetJ) ? Color.BLUE : Color.BLACK);
+            text.setFill(sudokuGame.isErrorShownInCell(targetI, targetJ) ? Color.RED : Color.BLACK);
             text.setText(String.valueOf(sudokuGame.getValue(targetI, targetJ)));
             text.setVisible(sudokuGame.getValue(targetI, targetJ) != 0);
             border.setVisible(selected);
@@ -342,6 +343,7 @@ public class FXMLDocumentController implements Initializable {
             System.out.println("resolving cell tile");
             //undo error coloring
             text.setFill(sudokuGame.isGiven(targetI, targetJ)? Color.BLUE : Color.BLACK);
+            text.setFill(sudokuGame.isErrorShownInCell(targetI, targetJ) ? Color.RED : Color.BLACK);
             
             if (s == null) {
                 currentSelected = this;
@@ -378,12 +380,9 @@ public class FXMLDocumentController implements Initializable {
             text.setVisible(sudokuGame.getValue(targetI, targetJ) != 0);
             text.setFont(Font.font(null, sudokuGame.isGiven(targetI, targetJ)? FontWeight.EXTRA_BOLD : FontWeight.NORMAL, CELL_SIZE/2));
             text.setFill(sudokuGame.isGiven(targetI, targetJ)? Color.BLUE : Color.BLACK);
+            text.setFill(sudokuGame.isErrorShownInCell(targetI, targetJ) ? Color.RED : Color.BLACK);
             for (int i = 0; i < LENGTH; i++)
                 possibles[i].setVisible(sudokuGame.containsPossibility(targetI, targetJ, i+1));
-        }
-        
-        public void setError() {
-            text.setFill(Color.RED);
         }
         
     }
@@ -740,23 +739,16 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     public void showAllErrors() {
         undoCurrentSelected();
-        boolean[][] errors = sudokuGame.showAllErrors();
-        for (int i = 0; i < errors.length; ++i) {
-            for (int j = 0; j < errors[i].length; ++j) {
-                if (errors[i][j]) {
-                    cellGrid[i][j].setError();
-                }
-            }
-        }
+        sudokuGame.showAllErrors();
+        refresh();
     }
     
     @FXML
     public void showError() {
         if (currentSelected instanceof CellTile) {
             CellTile tile = (CellTile) currentSelected;
-            if (sudokuGame.showError(tile.getTargetI(), tile.getTargetJ())) {
-                tile.setError();
-            }
+            sudokuGame.showError(tile.getTargetI(), tile.getTargetJ());
+            tile.update();
         } else {
             Alert alert = new Alert(AlertType.INFORMATION);
             alert.setTitle("No cell selected");

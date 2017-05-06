@@ -105,7 +105,8 @@ public class SudokuSolver {
     5: Hidden Pairs
     6: Hidden Triples
     7: Intersection Removal
-    8: Brute Force
+    8: X Wing
+    9: Brute Force
     */
     private void setCellStrategy(Cell c, int strategy) {
         if (strategy > cellStrategies[c.getId()])
@@ -122,7 +123,7 @@ public class SudokuSolver {
             "Hidden Pairs",
             "Hidden Triples",
             "Intersection Removal",
-            "X-Wing",
+            "X Wing",
             "Brute Force"};
         if (index < strategyNames.length && index >= 0) {
             return strategyNames[index];
