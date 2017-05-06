@@ -56,6 +56,7 @@ import com.david.completesudoku.Sudoku;
 import com.david.completesudoku.Cell;
 import com.david.completesudoku.Selectable;
 import com.david.completesudoku.SudokuGame;
+import com.david.completesudoku.SudokuGame.OnChangeListener;
 import com.david.completesudoku.SudokuGenerator;
 import com.david.completesudoku.SudokuSolver;
 
@@ -101,7 +102,7 @@ public class FXMLDocumentController implements Initializable {
         int[][] model = new int[9][9] ;
 
       // Create the initial situation
-      
+
       model[0][0] = 9 ;
       model[0][4] = 2 ;
       model[0][6] = 7 ;
@@ -139,10 +140,11 @@ public class FXMLDocumentController implements Initializable {
       model[8][4] = 4 ;
       model[8][8] = 6 ;
 
-      sudokuGenerator = new SudokuGenerator();
-      sudokuGame = new SudokuGame(new Sudoku(model));
-      resetLabels();
-      sudokuGame.begin();
+        sudokuGenerator = new SudokuGenerator();
+        sudokuGame = new SudokuGame(new Sudoku(model));
+        
+        resetLabels();
+        sudokuGame.begin();
         /*int sample[][] = {{ 3, 0, 6, 5, 0, 8, 4, 0, 0 }, //
                         { 5, 2, 0, 0, 0, 0, 0, 0, 0 }, //
                         { 0, 8, 7, 0, 0, 0, 0, 3, 1 }, //
@@ -171,7 +173,6 @@ public class FXMLDocumentController implements Initializable {
                 }
             }
             sudokuGame = new SudokuGame(new Sudoku(grid));
-            refresh();
             resetLabels();
             sudokuGame.begin();
         } catch(FileNotFoundException ex) {
@@ -238,6 +239,18 @@ public class FXMLDocumentController implements Initializable {
             ht.resolve(currentSelected);
         });
         buttonGrid.add(ht, 9, 1);
+        
+        //add a listener to update GUI when game state changes
+        sudokuGame.addOnChangeListener(new OnChangeListener() {
+            @Override
+            public void onChange() {
+                for (int i = 0; i < LENGTH; i++) {
+                    for (int j = 0; j < LENGTH; j++) {
+                        cellGrid[i][j].update();
+                    }
+                }
+            }
+        });
         
         //add timer
         Timer timer = new Timer(true);
@@ -353,7 +366,6 @@ public class FXMLDocumentController implements Initializable {
                 currentSelected = null;
                 setSelected(false);
                 sudokuGame.setHighlightedAction(targetI, targetJ);
-                update();
             }
             else if (s instanceof CellTile) {
                 currentSelected = this;
@@ -362,15 +374,12 @@ public class FXMLDocumentController implements Initializable {
             }
             else if (s instanceof ValueTile) {
                 sudokuGame.setValueAction(targetI, targetJ, ((ValueTile) s).getValue());
-                update();
             }
             else if (s instanceof PossibilityTile) {
                 sudokuGame.setPossibleAction(targetI, targetJ, ((PossibilityTile) s).getPossibility());
-                update();
             }
             else if (s instanceof HighlightTile) {
                 sudokuGame.setHighlightedAction(targetI, targetJ);
-                update();
             }
         }
         
@@ -445,11 +454,9 @@ public class FXMLDocumentController implements Initializable {
                 sudokuGame.setValueAction(t.getTargetI(), t.getTargetJ(), value);
                 currentSelected = null;
                 t.setSelected(false);
-                t.update();
             }
             else if (s instanceof HighlightTile) {
                 sudokuGame.setHighlightedValueAction(value);
-                refresh();
             }
         }
         
@@ -533,11 +540,9 @@ public class FXMLDocumentController implements Initializable {
                 sudokuGame.setPossibleAction(t.getTargetI(), t.getTargetJ(), possibility);
                 currentSelected = null;
                 t.setSelected(false);
-                t.update();
             }
             else if (s instanceof HighlightTile) {
                 sudokuGame.setHighlightedPossibilityAction(possibility);
-                refresh();
             }
         }
         
@@ -591,30 +596,19 @@ public class FXMLDocumentController implements Initializable {
             else if (s instanceof ValueTile) {
                 ValueTile t = ((ValueTile) s);
                 sudokuGame.setHighlightedValueAction(t.getValue());
-                refresh();
             }
             else if (s instanceof PossibilityTile) {
                 PossibilityTile t = ((PossibilityTile) s);
                 sudokuGame.setHighlightedPossibilityAction(t.getPossibility());
-                refresh();
             }
             else if (s instanceof CellTile) {
                 CellTile t = ((CellTile) s);
                 sudokuGame.setHighlightedAction(t.getTargetI(), t.getTargetJ());
                 currentSelected = null;
                 t.setSelected(false);
-                t.update();
             }
         }
         
-    }
-    
-    public void refresh() {
-        for (int i = 0; i < LENGTH; i++) {
-            for (int j = 0; j < LENGTH; j++) {
-                cellGrid[i][j].update();
-            }
-        }
     }
     
     @FXML
@@ -649,9 +643,19 @@ public class FXMLDocumentController implements Initializable {
             sudoku = sudokuGenerator.getSudoku(diff);
         }
         if (sudoku != null) {
+            sudokuGame.clearOnChangeListeners();
             sudokuGame = new SudokuGame(sudoku);
             sudokuGame.setDifficulty(diff);
-            refresh();
+            sudokuGame.addOnChangeListener(new OnChangeListener() {
+                @Override
+                public void onChange() {
+                    for (int i = 0; i < LENGTH; i++) {
+                        for (int j = 0; j < LENGTH; j++) {
+                            cellGrid[i][j].update();
+                        }
+                    }
+                }
+            });
             resetLabels();
             sudokuGame.begin();
         }
@@ -671,10 +675,21 @@ public class FXMLDocumentController implements Initializable {
         File file = fileChooser.showOpenDialog(null);
         if (file != null) {
             FileModel fileModel = new FileModel(file.getPath());
+            sudokuGame.clearOnChangeListeners();
             sudokuGame = fileModel.loadGame(null);
-            refresh();
+            sudokuGame.addOnChangeListener(new OnChangeListener() {
+                @Override
+                public void onChange() {
+                    for (int i = 0; i < LENGTH; i++) {
+                        for (int j = 0; j < LENGTH; j++) {
+                            cellGrid[i][j].update();
+                        }
+                    }
+                }
+            });
             resetLabels();
             sudokuGame.start();
+            sudokuGame.update();
         }
         
     }
@@ -713,34 +728,23 @@ public class FXMLDocumentController implements Initializable {
     public void solveGame() {
         undoCurrentSelected();
         sudokuGame.showAllAnswers();
-        refresh();
-        /*Sudoku solution = SudokuSolver.solve(sudoku);
-        if (solution != null) {
-            sudokuGame.end();
-            refresh();
-        } else {
-            System.out.println("No solution");
-        }*/
             
     }
     
     @FXML
     public void undoMove() {
         sudokuGame.undo();
-        refresh();
     }
     
     @FXML
     public void redoMove() {
         sudokuGame.redo();
-        refresh();
     }
     
     @FXML
     public void showAllErrors() {
         undoCurrentSelected();
         sudokuGame.showAllErrors();
-        refresh();
     }
     
     @FXML
@@ -748,7 +752,6 @@ public class FXMLDocumentController implements Initializable {
         if (currentSelected instanceof CellTile) {
             CellTile tile = (CellTile) currentSelected;
             sudokuGame.showError(tile.getTargetI(), tile.getTargetJ());
-            tile.update();
         } else {
             Alert alert = new Alert(AlertType.INFORMATION);
             alert.setTitle("No cell selected");
@@ -764,7 +767,6 @@ public class FXMLDocumentController implements Initializable {
         if (currentSelected instanceof CellTile) {
             CellTile tile = (CellTile) currentSelected;
             sudokuGame.showAnswer(tile.getTargetI(), tile.getTargetJ());
-            tile.update();
         } else {
             Alert alert = new Alert(AlertType.INFORMATION);
             alert.setTitle("No cell selected");
@@ -779,21 +781,18 @@ public class FXMLDocumentController implements Initializable {
     public void restartGame() {
         undoCurrentSelected();
         sudokuGame.reset();
-        refresh();
     }
     
     @FXML
     public void fillNotes() {
         undoCurrentSelected();
         sudokuGame.showPossibilities();
-        refresh();
     }
     
     @FXML
     public void removeNotes() {
         undoCurrentSelected();
         sudokuGame.removePossibilities();
-        refresh();
     }
     
     @FXML
