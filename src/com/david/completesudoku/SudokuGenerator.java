@@ -4,8 +4,12 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 /**
  *
@@ -24,16 +28,33 @@ public class SudokuGenerator {
 
     
     private int sudokuNumber;
-    private List<int[][]> sudokus = new ArrayList<>();
-    private List<String> difficulties = new ArrayList<>();
+    private List<int[][]> sudokus;
+    private List<String> difficulties;
+    private Map<String,List<Integer>> index;
     
-    public SudokuGenerator() {
+    public SudokuGenerator() throws Exception{
+        this(DEFAULT_GAME);
+    }
+    
+    public SudokuGenerator(String path) throws Exception{
+        this(new FileReader(path));
+    }
+        
+    public SudokuGenerator(InputStreamReader in) {
         sudokuNumber = 0;
         sudokus = new ArrayList<>();
+        difficulties = new ArrayList<>();
+        index = new HashMap<>();
+        index.put(ULTRA_EASY, new ArrayList<>());
+        index.put(EASY, new ArrayList<>());
+        index.put(MEDIUM, new ArrayList<>());
+        index.put(HARD, new ArrayList<>());
+        index.put(DIABOLICAL, new ArrayList<>());
         
         //from file
-        try (BufferedReader br = new BufferedReader(new FileReader(DEFAULT_GAME))) {
-            String line;  
+        try (BufferedReader br = new BufferedReader(in)) {
+            String line;
+            int count = 0;
             while((line = br.readLine()) != null){
                 if (line.contains("G")) {
                     String[] metaData = line.split(" ");
@@ -52,6 +73,10 @@ public class SudokuGenerator {
                         }
                     }
                     sudokus.add(grid);
+                    if (difficulties.size() > count &&  index.containsKey(difficulties.get(count))) {
+                        index.get(difficulties.get(count)).add(count);
+                    }
+                    count++;
                 }
             }
         } catch(FileNotFoundException ex) {
@@ -66,14 +91,10 @@ public class SudokuGenerator {
         if (difficulty.equals(RANDOM)) {
             return new Sudoku(sudokus.get(sudokuNumber++));
         }
-        else {
-            int i = 0;
-            while (!difficulties.get(i).equals(difficulty)) {
-                ++i;
-            }
-            if (i < sudokus.size()) {
-                return new Sudoku(sudokus.get(i));
-            }
+        else if (index.containsKey(difficulty)) {
+            Random rand = new Random(); 
+            List<Integer> ids = index.get(difficulty);
+            return new Sudoku(sudokus.get(ids.get(rand.nextInt(ids.size()))));
         }
         return null;
     }

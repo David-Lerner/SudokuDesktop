@@ -972,7 +972,20 @@ public class SudokuSolver {
     }
     
     public String getDifficulty() {
-        return "Medium"; //difficulty class
+        double[] weights = {-0.31564061,  0.00595505,  0.0102608,   
+            0.02995759,  0.03746034,  0.09550099,
+            0.26383384,  0.02606311,  0.265347,    0.0497289 };
+        double sum = 11.0874694522;
+        for (int i = 0; i < strategyCounts.length; i++) {
+            sum += strategyCounts[i]*weights[i];    
+        }
+        if (sum > 4) {
+            sum = 4;
+        } else if (sum < 0) {
+            sum = 0;
+        }
+        String[] difficulties = {"Ultra Easy", "Easy", "Medium", "Hard", "Diabolical"};
+        return difficulties[(int)sum];
     }
     
     private void writeMatrix() {

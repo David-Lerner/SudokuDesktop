@@ -71,6 +71,8 @@ public class SudokuGame {
         this.answers = answers;
         this.errors = errors;
         this.hints = hints;
+        this.undo = new ArrayDeque<>();
+        this.redo = new ArrayDeque<>();
         
         this.onChangeListeners = new ArrayList<>();
         this.length = sudoku.getLength();
@@ -776,6 +778,7 @@ public class SudokuGame {
 
     public void setName(String name) {
         this.name = name;
+        update();
     }
 
     public String getDifficulty() {

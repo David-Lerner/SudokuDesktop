@@ -59,6 +59,8 @@ import com.david.completesudoku.SudokuGame;
 import com.david.completesudoku.SudokuGame.OnChangeListener;
 import com.david.completesudoku.SudokuGenerator;
 import com.david.completesudoku.SudokuSolver;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -140,7 +142,12 @@ public class FXMLDocumentController implements Initializable {
       model[8][4] = 4 ;
       model[8][8] = 6 ;
 
-        sudokuGenerator = new SudokuGenerator();
+      
+        try {
+            sudokuGenerator = new SudokuGenerator();
+        } catch (Exception ex) {
+            Logger.getLogger(FXMLDocumentController.class.getName()).log(Level.SEVERE, null, ex);
+        }
         sudokuGame = new SudokuGame(new Sudoku(model));
         
         resetLabels();
